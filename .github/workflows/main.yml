@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '11'
-          distribution: 'adoptopenjdk'
+          distribution: 'jetbrains'
 
       - name: Spotless
         run: mvn spotless:apply
