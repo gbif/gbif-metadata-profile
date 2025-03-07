@@ -24,6 +24,10 @@
   </modules>
 
   <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <java.version>11</java.version>
+
     <main.basedir>${project.basedir}</main.basedir>
 
     <gbif-api.version>1.16.18</gbif-api.version>
