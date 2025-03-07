@@ -302,6 +302,7 @@ public class EMLRuleSet extends RuleSetBase {
       return new InterpretedEnum<String, Rank>();
     }
   }
+
   /**
    * This is a reusable set of rules to build Citation and add the Citation as per the method called
    * on parent object which is the previous stack object.

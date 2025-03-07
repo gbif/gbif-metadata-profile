@@ -160,15 +160,18 @@ public class Eml implements Serializable {
    * Date of metadata creation or the last metadata update Default to now(), but can be overridden
    */
   private Date dateStamp = new Date();
+
   /**
    * The distributionType URL is generally meant for informational purposes, and the "function" attribute should be set
    * to "information".
    */
   private String distributionUrl;
+
   /**
    * Download URL
    */
   private String distributionDownloadUrl;
+
   /**
    * Serialised data
    */
