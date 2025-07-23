@@ -115,9 +115,7 @@ public class KeywordSet implements Serializable {
     this.keywords.clear();
     if (keywords != null) {
       for (String k : StringUtils.split(keywords, separator)) {
-        Optional.ofNullable(k)
-            .map(StringUtils::trimToNull)
-            .ifPresent(this.keywords::add);
+        Optional.ofNullable(k).map(StringUtils::trimToNull).ifPresent(this.keywords::add);
       }
     }
   }
