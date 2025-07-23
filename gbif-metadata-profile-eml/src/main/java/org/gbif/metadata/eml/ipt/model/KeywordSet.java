@@ -16,6 +16,7 @@ package org.gbif.metadata.eml.ipt.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -114,8 +115,9 @@ public class KeywordSet implements Serializable {
     this.keywords.clear();
     if (keywords != null) {
       for (String k : StringUtils.split(keywords, separator)) {
-        k = StringUtils.trimToNull(k);
-        this.keywords.add(k);
+        Optional.ofNullable(k)
+            .map(StringUtils::trimToNull)
+            .ifPresent(this.keywords::add);
       }
     }
   }
