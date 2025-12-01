@@ -208,7 +208,8 @@ public class EmlFactoryTest {
           "<para>Specimens in jars.</para><para>Collected over years.</para><para>Still being curated.</para>",
           eml.getAbstract());
       assertEquals(
-          "<section><title>Introduction</title><para>Actual introduction</para></section>", eml.getIntroduction());
+          "<section><title>Introduction</title><para>Actual introduction</para></section>",
+          eml.getIntroduction());
       assertEquals("<para>getting started stuff</para>", eml.getGettingStarted());
       assertEquals(
           "<para>Test acknowledgements</para><para><itemizedlist><listitem><para>First item</para></listitem></itemizedlist><orderedlist><listitem><para>First item</para></listitem></orderedlist></para><para><emphasis>Emphasis</emphasis>\n"
