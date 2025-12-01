@@ -737,7 +737,7 @@
                 <#if (eml.jgtiCuratorialUnits ? size > 0)>
                 <#list eml.getJgtiCuratorialUnits() as cdata>
                 <jgtiCuratorialUnit>
-                    <#if (cdata.getUnitType())??>
+                    <#if (cdata.getUnitType())?has_content>
                     <jgtiUnitType>${cdata.unitType}</jgtiUnitType>
                     </#if>
                     <#if (cdata.rangeEnd)??>
