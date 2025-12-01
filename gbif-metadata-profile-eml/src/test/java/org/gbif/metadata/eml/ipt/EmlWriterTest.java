@@ -497,7 +497,7 @@ public class EmlWriterTest {
       Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
       assertEquals(
-          "<p>Specimens in jars.</p><p>Collected over years.</p><p>Still being curated.</p>",
+          "<para>Specimens in jars.</para><para>Collected over years.</para><para>Still being curated.</para>",
           eml2.getAbstract());
       assertEquals("GBIF & EOL", eml2.getContacts().get(1).getOrganisation());
       assertEquals("The <very> important \"resources\" & other things", eml2.getTitle());

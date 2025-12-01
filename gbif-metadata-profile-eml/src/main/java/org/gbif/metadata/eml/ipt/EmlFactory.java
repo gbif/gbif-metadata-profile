@@ -59,38 +59,6 @@ import org.xml.sax.SAXException;
  */
 public class EmlFactory {
 
-  // Define pairs of DocBook tags. MUST MATCH HTML tags!
-  private static final String[] DOCBOOK_TAGS = {
-    "<section>", "</section>",
-    "<title>", "</title>",
-    "<para><itemizedlist>", "</itemizedlist></para>",
-    "<para><orderedlist>", "</orderedlist></para>",
-    "<listitem><para>", "</para></listitem>",
-    "<itemizedlist>", "</itemizedlist>",
-    "<orderedlist>", "</orderedlist>",
-    "<para>", "</para>",
-    "<emphasis>", "</emphasis>",
-    "<subscript>", "</subscript>",
-    "<superscript>", "</superscript>",
-    "<literalLayout>", "</literalLayout>"
-  };
-
-  // Define pairs of HTML tags. MUST MATCH DocBook tags!
-  private static final String[] HTML_TAGS = {
-    "<div>", "</div>",
-    "<h1>", "</h1>",
-    "<ul>", "</ul>",
-    "<ol>", "</ol>",
-    "<li>", "</li>",
-    "<ul>", "</ul>",
-    "<ol>", "</ol>",
-    "<p>", "</p>",
-    "<b>", "</b>",
-    "<sub>", "</sub>",
-    "<sup>", "</sup>",
-    "<pre>", "</pre>"
-  };
-
   /**
    * Uses rule based parsing to read the EML XML and build the EML model.
    * Note the following: - Metadata provider rules are omitted on the assumption that the provider is the same as the
@@ -578,7 +546,7 @@ public class EmlFactory {
     }
 
     protected String serializeNode(Element nodeToSerialize) throws Exception {
-      String htmlOutput;
+      String output;
 
       try (StringWriter writer = new StringWriter()) {
         // Create a new Document to serialize the node
@@ -615,10 +583,10 @@ public class EmlFactory {
         String unwrappedDocBookXml = unwrapParentTag(serializedDocBookXml);
 
         // Convert DocBook XML to HTML
-        htmlOutput = convertDocBookToHtml(unwrappedDocBookXml);
+        output = unwrappedDocBookXml;
       }
 
-      return htmlOutput;
+      return output;
     }
 
     private String preservePreformattedWhitespace(String xmlString) {
@@ -632,18 +600,6 @@ public class EmlFactory {
           str,
           new String[] {"<" + wrapperElement + ">", "</" + wrapperElement + ">"},
           new String[] {"", ""});
-    }
-
-    private String convertDocBookToHtml(String docbookXmlString) {
-      // Replace links
-      String docBookXmlStringWithLinksReplaces =
-          docbookXmlString.replaceAll(
-              "<ulink\\s+url=\"(.*?)\">\\s*<citetitle>(.*?)</citetitle>\\s*</ulink>",
-              "<a href=\"$1\">$2</a>");
-
-      // Perform replacements
-      return StringUtils.replaceEach(docBookXmlStringWithLinksReplaces, DOCBOOK_TAGS, HTML_TAGS)
-          .trim();
     }
 
     protected void invokeMethodOnTopOfStack(String methodName, String param) throws Exception {

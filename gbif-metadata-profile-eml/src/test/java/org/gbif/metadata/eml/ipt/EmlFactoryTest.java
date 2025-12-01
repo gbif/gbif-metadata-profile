@@ -205,18 +205,18 @@ public class EmlFactoryTest {
 
       assertEquals("en_US", eml.getLanguage());
       assertEquals(
-          "<p>Specimens in jars.</p><p>Collected over years.</p><p>Still being curated.</p>",
+          "<para>Specimens in jars.</para><para>Collected over years.</para><para>Still being curated.</para>",
           eml.getAbstract());
       assertEquals(
-          "<div><h1>Introduction</h1><p>Actual introduction</p></div>", eml.getIntroduction());
-      assertEquals("<p>getting started stuff</p>", eml.getGettingStarted());
+          "<section><title>Introduction</title><para>Actual introduction</para></section>", eml.getIntroduction());
+      assertEquals("<para>getting started stuff</para>", eml.getGettingStarted());
       assertEquals(
-          "<p>Test acknowledgements</p><ul><li>First item</li></ul><ol><li>First item</li></ol><p><b>Emphasis</b>\n"
-              + "                CO<sub>2</sub> (or just CO₂)\n"
-              + "                m<sup>3</sup> (or just m³)\n"
-              + "                <pre>\n"
+          "<para>Test acknowledgements</para><para><itemizedlist><listitem><para>First item</para></listitem></itemizedlist><orderedlist><listitem><para>First item</para></listitem></orderedlist></para><para><emphasis>Emphasis</emphasis>\n"
+              + "                CO<subscript>2</subscript> (or just CO₂)\n"
+              + "                m<superscript>3</superscript> (or just m³)\n"
+              + "                <literalLayout>\n"
               + "                    x = fn(y, z)\n"
-              + "                </pre><a href=\"https://example.org\">Example link</a></p>",
+              + "                </literalLayout><ulink url=\"https://example.org\"><citetitle>Example link</citetitle></ulink></para>",
           eml.getAcknowledgements());
 
       // multiple KeywordSets tests
@@ -323,7 +323,7 @@ public class EmlFactoryTest {
       assertEquals(
           "Birds", eml.getTaxonomicCoverages().get(1).getTaxonKeywords().get(0).getCommonName());
 
-      assertEquals("<p>Provide data to the whole world.</p>", eml.getPurpose());
+      assertEquals("<para>Provide data to the whole world.</para>", eml.getPurpose());
 
       assertEquals("Changes done as needed.", eml.getUpdateFrequencyDescription());
       assertEquals(MaintenanceUpdateFrequency.AS_NEEDED, eml.getUpdateFrequency());
