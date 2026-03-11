@@ -625,6 +625,9 @@
                     <role>${relatedProjectPersonnel.role!}</role>
                 </personnel>
                 </#list>
+                <#if relatedProject.description?has_content>
+                <abstract>${relatedProject.description}</abstract>
+                </#if>
             </relatedProject>
             </#list>
         </project>
