@@ -55,9 +55,12 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.util.Date;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.Converter;
@@ -74,9 +77,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.Attributes;
-
-import com.sun.org.apache.xml.internal.serialize.OutputFormat;
-import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
 /**
  * Digester rules to parse EML dataset metadata documents together with a DatasetDelegator digester
@@ -621,13 +621,10 @@ public class EMLRuleSet extends RuleSetBase {
       String htmlOutput;
 
       try (StringWriter writer = new StringWriter()) {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document doc = builder.newDocument();
-        OutputFormat format = new OutputFormat(doc);
-        format.setOmitXMLDeclaration(true);
-        XMLSerializer serializer = new XMLSerializer(writer, format);
-        serializer.serialize(nodeToSerialize);
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        transformer.transform(new DOMSource(nodeToSerialize), new StreamResult(writer));
 
         String serializedDocBookXml = writer.getBuffer().toString();
         String unwrappedDocBookXml = unwrapParentTag(serializedDocBookXml);
