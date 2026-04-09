@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.gbif</groupId>
     <artifactId>motherpom</artifactId>
-    <version>56</version>
+    <version>59</version>
   </parent>
 
   <artifactId>gbif-metadata-profile</artifactId>
@@ -25,6 +25,10 @@
 
   <properties>
     <main.basedir>${project.basedir}</main.basedir>
+    <java.version>17</java.version>
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
 
     <gbif-api.version>1.16.1-grscicoll-SNAPSHOT</gbif-api.version>
     <gbif-common.version>0.60</gbif-common.version>
