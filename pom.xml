@@ -39,6 +39,7 @@
     <commons-digester3.version>3.2</commons-digester3.version>
     <commons-io.version>2.20.0</commons-io.version>
     <commons-lang.version>3.19.0</commons-lang.version>
+    <citeproc-java.version>3.4.1</citeproc-java.version>
     <jackson.version>2.17.2</jackson.version>
     <freemarker.version>2.3.34</freemarker.version>
     <junit.version>5.14.0</junit.version>
@@ -46,27 +47,6 @@
     <jsr305.version>3.0.2</jsr305.version>
     <jsoup.version>1.21.2</jsoup.version>
   </properties>
-  <dependencies>
-    <dependency>
-      <groupId>org.gbif</groupId>
-      <artifactId>gbif-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>de.undercouch</groupId>
-      <artifactId>citeproc-java</artifactId>
-      <version>3.5.0</version>
-      <scope>compile</scope>
-    </dependency>
-  </dependencies>
-
   <scm>
     <connection>scm:git:git@github.com:gbif/${project.artifactId}.git</connection>
     <url>https://github.com/gbif/${project.artifactId}</url>
@@ -150,6 +130,11 @@
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-yaml</artifactId>
         <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.undercouch</groupId>
+        <artifactId>citeproc-java</artifactId>
+        <version>${citeproc-java.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
