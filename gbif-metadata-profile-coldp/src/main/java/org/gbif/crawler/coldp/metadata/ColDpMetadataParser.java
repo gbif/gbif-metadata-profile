@@ -160,6 +160,7 @@ public class ColDpMetadataParser {
     addAgents(root.get("creator"), metadata.getCreators()::add);
     addAgents(root.get("editor"), metadata.getEditors()::add);
     addAgents(root.get("contributor"), metadata.getContributors()::add);
+    addSources(root.get("sources"), metadata.getSources()::add);
     metadata.setPublisher(readAgent(root.get("publisher")));
     return metadata;
   }
@@ -313,6 +314,46 @@ public class ColDpMetadataParser {
     return agent;
   }
 
+  private void addSources(JsonNode node, Consumer<ColDpMetadata.Source> sink) {
+    if (node == null || node.isNull()) {
+      return;
+    }
+    if (node.isArray()) {
+      for (JsonNode child : node) {
+        ColDpMetadata.Source source = readSource(child);
+        if (source != null) {
+          sink.accept(source);
+        }
+      }
+      return;
+    }
+    ColDpMetadata.Source source = readSource(node);
+    if (source != null) {
+      sink.accept(source);
+    }
+  }
+
+  private ColDpMetadata.Source readSource(JsonNode node) {
+    if (node == null || node.isNull()) {
+      return null;
+    }
+    ColDpMetadata.Source source = new ColDpMetadata.Source();
+    if (node.isTextual()) {
+      source.setTitle(asText(node));
+      return trimToNull(source.getTitle()) == null ? null : source;
+    }
+    if (!node.isObject()) {
+      return null;
+    }
+    source.setTitle(asText(firstPresent(node, "title", "name")));
+    source.setPath(asText(firstPresent(node, "path", "url")));
+    source.setEmail(asText(node.get("email")));
+    if (source.getTitle() == null) {
+      return null;
+    }
+    return source;
+  }
+
   private JsonNode firstPresent(JsonNode node, String... fieldNames) {
     for (String fieldName : fieldNames) {
       JsonNode child = node.get(fieldName);
@@ -382,6 +423,10 @@ public class ColDpMetadataParser {
       identifier.setIdentifier(identifierText);
       if (DOI.isParsable(sourceId.getValue()) || DOI.isParsable(identifierText)) {
         identifier.setType(IdentifierType.DOI);
+      } else if (identifierText.startsWith("http://") || identifierText.startsWith("https://")) {
+        identifier.setType(IdentifierType.URL);
+      } else {
+        identifier.setType(IdentifierType.UNKNOWN);
       }
       dataset.getIdentifiers().add(identifier);
     }
@@ -400,6 +445,11 @@ public class ColDpMetadataParser {
         dataset.getContacts().add(contact);
       }
     }
+    metadata.getSources().stream()
+        .map(ColDpMetadataParser::toBibliographicCitation)
+        .filter(citation -> citation != null && trimToNull(citation.getText()) != null)
+        .forEach(dataset.getBibliographicCitations()::add);
+
     String citationText = ColDpCitationFormatter.format(metadata);
     if (citationText != null) {
       Citation citation = new Citation();
@@ -434,6 +484,30 @@ public class ColDpMetadataParser {
       return null;
     }
     return contact;
+  }
+
+  private static Citation toBibliographicCitation(ColDpMetadata.Source source) {
+    if (source == null) {
+      return null;
+    }
+    String title = trimToNull(source.getTitle());
+    if (title == null) {
+      return null;
+    }
+    String path = trimToNull(source.getPath());
+    String email = trimToNull(source.getEmail());
+    StringBuilder text = new StringBuilder(title);
+    if (path != null) {
+      text.append(". ").append(path);
+    }
+    if (email != null) {
+      text.append(". ").append(email);
+    }
+    Citation citation = new Citation();
+    citation.setText(text.toString());
+    citation.setIdentifier(path);
+    citation.setCitationProvidedBySource(true);
+    return citation;
   }
 
   private static URI toUri(String value) {

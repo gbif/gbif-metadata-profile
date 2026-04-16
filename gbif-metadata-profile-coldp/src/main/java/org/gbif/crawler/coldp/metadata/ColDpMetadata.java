@@ -37,6 +37,7 @@ public class ColDpMetadata {
   private final List<Agent> creators = new ArrayList<>();
   private final List<Agent> editors = new ArrayList<>();
   private final List<Agent> contributors = new ArrayList<>();
+  private final List<Source> sources = new ArrayList<>();
   private Agent publisher;
 
   public String getTitle() {
@@ -139,6 +140,10 @@ public class ColDpMetadata {
     return contributors;
   }
 
+  public List<Source> getSources() {
+    return sources;
+  }
+
   public Agent getPublisher() {
     return publisher;
   }
@@ -158,6 +163,7 @@ public class ColDpMetadata {
         || !creators.isEmpty()
         || !editors.isEmpty()
         || !contributors.isEmpty()
+        || !sources.isEmpty()
         || publisher != null;
   }
 
@@ -346,6 +352,36 @@ public class ColDpMetadata {
       } catch (IllegalArgumentException e) {
         return null;
       }
+    }
+  }
+
+  public static class Source {
+    private String title;
+    private String path;
+    private String email;
+
+    public String getTitle() {
+      return title;
+    }
+
+    public void setTitle(String title) {
+      this.title = title;
+    }
+
+    public String getPath() {
+      return path;
+    }
+
+    public void setPath(String path) {
+      this.path = path;
+    }
+
+    public String getEmail() {
+      return email;
+    }
+
+    public void setEmail(String email) {
+      this.email = email;
     }
   }
 }

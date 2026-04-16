@@ -36,6 +36,7 @@ public class ColDpMetadataParserTest {
             + "\"identifier\":[\"doi:10.1234/example\", {\"prefix\":\"local\",\"value\":\"abc\"}],"
             + "\"contact\":{\"given\":\"Jane\",\"family\":\"Doe\",\"email\":\"jane@example.org\"},"
             + "\"creator\":[\"Literal Creator\", {\"organization\":\"GBIF\"}],"
+            + "\"sources\":[{\"title\":\"Checklist source\",\"path\":\"https://example.org/source\",\"email\":\"source@example.org\"}],"
             + "\"publisher\":{\"organisation\":\"Catalogue of Life\",\"url\":\"https://www.catalogueoflife.org\"}"
             + "}";
 
@@ -61,10 +62,21 @@ public class ColDpMetadataParserTest {
     assertEquals(2, metadata.getCreators().size());
     assertEquals("Literal Creator", metadata.getCreators().get(0).getDisplayName());
     assertEquals("GBIF", metadata.getCreators().get(1).getPrimaryOrganization());
+    assertEquals(1, metadata.getSources().size());
+    assertEquals("Checklist source", metadata.getSources().get(0).getTitle());
+    assertEquals("https://example.org/source", metadata.getSources().get(0).getPath());
+    assertEquals("source@example.org", metadata.getSources().get(0).getEmail());
 
     assertNotNull(metadata.getPublisher());
     assertEquals("Catalogue of Life", metadata.getPublisher().getPrimaryOrganization());
     assertNotNull(metadata.getPublisher().getParsedUrl());
+    assertEquals(1, dataset.getBibliographicCitations().size());
+    assertEquals(
+        "Checklist source. https://example.org/source. source@example.org",
+        dataset.getBibliographicCitations().get(0).getText());
+    assertEquals(
+        "https://example.org/source", dataset.getBibliographicCitations().get(0).getIdentifier());
+    assertTrue(dataset.getBibliographicCitations().get(0).isCitationProvidedBySource());
   }
 
   @Test
