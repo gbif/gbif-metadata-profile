@@ -79,4 +79,16 @@ public class IptEmlWriter {
     map.put("eml", eml);
     writeFile(f, EML_TEMPLATE, map);
   }
+
+  /**
+   * Writes an {@link Eml} object to a string using a Freemarker {@link Configuration}.
+   *
+   * @param eml the EML object
+   * @return the XML string
+   */
+  public static String writeEmlAsString(Eml eml) throws IOException, TemplateException {
+    Map<String, Object> map = new HashMap<>();
+    map.put("eml", eml);
+    return processTemplateIntoString(FTL.getTemplate(EML_TEMPLATE), map);
+  }
 }

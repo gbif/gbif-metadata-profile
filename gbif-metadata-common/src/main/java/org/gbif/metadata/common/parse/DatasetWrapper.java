@@ -18,7 +18,6 @@ import org.gbif.api.model.registry.Citation;
 import org.gbif.api.model.registry.Contact;
 import org.gbif.api.model.registry.Dataset;
 import org.gbif.api.model.registry.Identifier;
-import org.gbif.api.model.registry.MaintenanceChange;
 import org.gbif.api.model.registry.eml.Collection;
 import org.gbif.api.model.registry.eml.DataDescription;
 import org.gbif.api.model.registry.eml.KeywordCollection;
@@ -245,6 +244,10 @@ public class DatasetWrapper {
     }
   }
 
+  public void addPublisher(String publisherId, String publisherName) {
+    target.setPublishingOrganizationName(publisherName);
+  }
+
   /**
    * Similar to addContact() except that it sets type to ADMINISTRATIVE_POINT_OF_CONTACT, and sets
    * isPrimary flag to true only if this is the first contact of type
@@ -287,10 +290,6 @@ public class DatasetWrapper {
     // set type to administrative
     contact.setType(ContactType.ORIGINATOR);
     addContact(contact);
-  }
-
-  public void addMaintenanceChange(MaintenanceChange maintenanceChange) {
-    target.addMaintenanceChange(maintenanceChange);
   }
 
   /**
@@ -475,6 +474,21 @@ public class DatasetWrapper {
 
   public void setPublishingOrganizationKey(UUID publishingOrganizationKey) {
     target.setPublishingOrganizationKey(publishingOrganizationKey);
+  }
+
+  public void setPublishingOrganizationName(String publishingOrganizationName) {
+    target.setPublishingOrganizationName(publishingOrganizationName);
+  }
+
+  public void setPublisher(String publisherId, String publisherName) {
+    if (publisherId != null) {
+      try {
+        setPublishingOrganizationKey(UUID.fromString(publisherId));
+      } catch (IllegalArgumentException e) {
+        LOG.error("Publishing organization key {} is an invalid UUID - skipping!", publisherId);
+      }
+    }
+    setPublishingOrganizationName(publisherName);
   }
 
   public void setProject(Project project) {

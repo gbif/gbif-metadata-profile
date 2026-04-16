@@ -5,11 +5,11 @@
   <parent>
     <groupId>org.gbif</groupId>
     <artifactId>motherpom</artifactId>
-    <version>56</version>
+    <version>61</version>
   </parent>
 
   <artifactId>gbif-metadata-profile</artifactId>
-  <version>2.4-SNAPSHOT</version>
+  <version>2.11-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>GBIF Common :: Metadata profile</name>
@@ -24,21 +24,25 @@
   </modules>
 
   <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <java.version>11</java.version>
+
     <main.basedir>${project.basedir}</main.basedir>
 
-    <gbif-api.version>1.16.1-grscicoll-SNAPSHOT</gbif-api.version>
+    <gbif-api.version>2.1.18</gbif-api.version>
     <gbif-common.version>0.60</gbif-common.version>
     <gbif-parsers.version>0.67</gbif-parsers.version>
 
-    <commons-beanutils.version>1.9.4</commons-beanutils.version>
+    <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <commons-digester3.version>3.2</commons-digester3.version>
-    <commons-io.version>2.16.1</commons-io.version>
-    <commons-lang.version>3.14.0</commons-lang.version>
-    <freemarker.version>2.3.32</freemarker.version>
-    <junit.version>5.10.2</junit.version>
-    <slf4j.version>1.7.36</slf4j.version>
+    <commons-io.version>2.20.0</commons-io.version>
+    <commons-lang.version>3.19.0</commons-lang.version>
+    <freemarker.version>2.3.34</freemarker.version>
+    <junit.version>5.14.0</junit.version>
+    <slf4j.version>2.0.17</slf4j.version>
     <jsr305.version>3.0.2</jsr305.version>
-    <jsoup.version>1.17.2</jsoup.version>
+    <jsoup.version>1.21.2</jsoup.version>
   </properties>
 
   <scm>

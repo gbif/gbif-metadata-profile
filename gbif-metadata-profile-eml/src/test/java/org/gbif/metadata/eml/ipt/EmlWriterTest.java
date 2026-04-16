@@ -25,8 +25,8 @@ import org.gbif.metadata.eml.ipt.model.UserId;
 import org.gbif.utils.file.FileUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Date;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -58,7 +58,7 @@ public class EmlWriterTest {
       IptEmlWriter.writeEmlFile(temp, eml);
 
       // read EML
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
 
       // compare
@@ -81,9 +81,19 @@ public class EmlWriterTest {
 
       assertFalse(eml.getDescription().isEmpty());
       assertFalse(eml2.getDescription().isEmpty());
-      assertEquals(eml2.getDescription().get(0), eml.getDescription().get(0));
-      assertEquals(eml2.getDescription().get(1), eml.getDescription().get(1));
-      assertEquals(eml2.getDescription().get(2), eml.getDescription().get(2));
+      assertEquals(eml2.getDescription(), eml.getDescription());
+
+      assertFalse(eml.getIntroduction().isEmpty());
+      assertFalse(eml2.getIntroduction().isEmpty());
+      assertEquals(eml2.getIntroduction(), eml.getIntroduction());
+
+      assertFalse(eml.getGettingStarted().isEmpty());
+      assertFalse(eml2.getGettingStarted().isEmpty());
+      assertEquals(eml2.getGettingStarted(), eml.getGettingStarted());
+
+      assertFalse(eml.getAcknowledgements().isEmpty());
+      assertFalse(eml2.getAcknowledgements().isEmpty());
+      assertEquals(eml2.getAcknowledgements(), eml.getAcknowledgements());
 
       assertNotNull(eml.getPubDate());
       assertEquals(eml2.getPubDate(), eml.getPubDate());
@@ -179,7 +189,7 @@ public class EmlWriterTest {
       IptEmlWriter.writeEmlFile(temp, eml);
 
       // now read the EML in again and ensure pubDate is not null
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
 
       System.out.println("New pub date: " + eml2.getPubDate());
@@ -242,7 +252,7 @@ public class EmlWriterTest {
       IptEmlWriter.writeEmlFile(temp, eml);
 
       // now read the EML in again and ensure personnel has been persisted correctly
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
 
       assertEquals(2, eml2.getProject().getPersonnel().size());
@@ -284,7 +294,7 @@ public class EmlWriterTest {
       IptEmlWriter.writeEmlFile(temp, eml);
 
       // now read the EML in again and ensure collection has been persisted correctly
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
 
       assertEquals(2, eml2.getCollections().size());
@@ -325,7 +335,7 @@ public class EmlWriterTest {
       // now read the EML in again and ensure another agent has been added to creators,
       // metadataProviders, and
       // contacts lists
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
 
       assertEquals(2, eml2.getCreators().size());
@@ -369,7 +379,7 @@ public class EmlWriterTest {
       // now read the EML in again and ensure another agent has been added to creators,
       // metadataProviders, and
       // contacts lists
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
 
       assertEquals(3, eml2.getCreators().get(0).getUserIds().size());
@@ -400,7 +410,7 @@ public class EmlWriterTest {
       IptEmlWriter.writeEmlFile(temp, eml);
 
       // now read the EML in again and ensure project has been persisted correctly
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
       assertEquals("T123:1", eml.getProject().getIdentifier());
       assertEquals("Part of a year-long series of events.", eml.getProject().getDescription());
@@ -425,7 +435,7 @@ public class EmlWriterTest {
       IptEmlWriter.writeEmlFile(temp, eml);
 
       // Verify the update frequency was persisted correctly
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
       assertNull(eml2.getUpdateFrequencyDescription());
       assertEquals(MaintenanceUpdateFrequency.UNKNOWN, eml2.getUpdateFrequency());
@@ -453,7 +463,7 @@ public class EmlWriterTest {
 
       // now read the EML in again and ensure specimen preservation methods has been persisted
       // correctly
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
 
       assertEquals(2, eml2.getSpecimenPreservationMethods().size());
@@ -475,7 +485,7 @@ public class EmlWriterTest {
       Agent gbif = new Agent();
       gbif.setOrganisation("GBIF & EOL");
       eml.getContacts().add(gbif);
-      eml.setTitle("The <very> important \"resources\" & other things");
+      eml.setTitle("The <very> important \"resources\" & other things");
 
       // write EML
       File temp = File.createTempFile("eml", ".xml");
@@ -484,10 +494,13 @@ public class EmlWriterTest {
       IptEmlWriter.writeEmlFile(temp, eml);
 
       // now read the EML in again and ensure pubDate is not null
-      Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+      Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
       assertNotNull(eml2);
+      assertEquals(
+          "<para>Specimens in jars.</para><para>Collected over years.</para><para>Still being curated.</para>",
+          eml2.getAbstract());
       assertEquals("GBIF & EOL", eml2.getContacts().get(1).getOrganisation());
-      assertEquals("The <very> important \"resources\" & other things", eml2.getTitle());
+      assertEquals("The <very> important \"resources\" & other things", eml2.getTitle());
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -523,12 +536,11 @@ public class EmlWriterTest {
     System.out.println("Writing temporary test eml file to " + temp.getAbsolutePath());
     IptEmlWriter.writeEmlFile(temp, eml);
 
-    // now read the EML in again and ensure format version is null - remember it's the 3rd Physical
+    // now read the EML in again and ensure the size is still 2
     // Data
-    Eml eml2 = EmlFactory.build(new FileInputStream(temp));
+    Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
     assertNotNull(eml2);
-    assertNull(eml2.getPhysicalData().get(2).getFormatVersion());
-    assertEquals("UTF-8", eml2.getPhysicalData().get(2).getCharset());
+    assertEquals(2, eml2.getPhysicalData().size());
   }
 
   /**
@@ -551,7 +563,7 @@ public class EmlWriterTest {
     a.addHomepage("http://www.ny-nhm.org");
     a.setOrganisation("Natural History Museum");
     a.addPhone("+19779779797");
-    a.setPosition("Head of Entomology");
+    a.addPosition("Head of Entomology");
 
     UserId userId = new UserId("http://orcid.org/", "0000-0002-8442-9000");
     a.addUserId(userId);

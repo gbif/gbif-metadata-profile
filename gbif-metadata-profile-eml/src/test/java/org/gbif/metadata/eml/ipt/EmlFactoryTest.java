@@ -85,7 +85,8 @@ public class EmlFactoryTest {
       assertEquals("Remsen", firstCreator.getLastName());
       assertNull(firstCreator.getRole());
       assertNotNull(firstCreator.getPosition());
-      assertEquals("ECAT Programme Officer", firstCreator.getPosition());
+      assertEquals(1, firstCreator.getPosition().size());
+      assertEquals("ECAT Programme Officer", firstCreator.getPosition().get(0));
       assertNotNull(firstCreator.getOrganisation());
       assertEquals("GBIF", firstCreator.getOrganisation());
 
@@ -162,7 +163,8 @@ public class EmlFactoryTest {
       assertEquals("Remsen", firstContact.getLastName());
       assertNull(firstContact.getRole());
       assertNotNull(firstContact.getPosition());
-      assertEquals("ECAT Programme Officer", firstContact.getPosition());
+      assertEquals(1, firstContact.getPosition().size());
+      assertEquals("ECAT Programme Officer", firstContact.getPosition().get(0));
       assertNotNull(firstContact.getOrganisation());
       assertEquals("GBIF", firstContact.getOrganisation());
       assertNotNull(firstContact.getAddress());
@@ -202,7 +204,21 @@ public class EmlFactoryTest {
       assertEquals(cal.getTime(), eml.getPubDate());
 
       assertEquals("en_US", eml.getLanguage());
-      assertEquals("Specimens in jars.", eml.getAbstract().get(0));
+      assertEquals(
+          "<para>Specimens in jars.</para><para>Collected over years.</para><para>Still being curated.</para>",
+          eml.getAbstract());
+      assertEquals(
+          "<section><title>Introduction</title><para>Actual introduction</para></section>",
+          eml.getIntroduction());
+      assertEquals("<para>getting started stuff</para>", eml.getGettingStarted());
+      assertEquals(
+          "<para>Test acknowledgements</para><para><itemizedlist><listitem><para>First item</para></listitem></itemizedlist><orderedlist><listitem><para>First item</para></listitem></orderedlist></para><para><emphasis>Emphasis</emphasis>\n"
+              + "                CO<subscript>2</subscript> (or just CO₂)\n"
+              + "                m<superscript>3</superscript> (or just m³)\n"
+              + "                <literalLayout>\n"
+              + "                    x = fn(y, z)\n"
+              + "                </literalLayout><ulink url=\"https://example.org\"><citetitle>Example link</citetitle></ulink></para>",
+          eml.getAcknowledgements());
 
       // multiple KeywordSets tests
       assertNotNull(eml.getKeywords());
@@ -232,6 +248,14 @@ public class EmlFactoryTest {
       // homepage URL, aka distributionUrl
       assertNotNull(eml.getDistributionUrl());
       assertEquals("http://www.any.org/fauna/coleoptera/beetleList.html", eml.getDistributionUrl());
+
+      // download URL
+      assertNotNull(eml.getDistributionDownloadUrl());
+      assertEquals("https://ipt.gbif.org/archive.do?r=res", eml.getDistributionDownloadUrl());
+
+      // publisher
+      assertNotNull(eml.getPublisherName());
+      assertEquals("Publishing Organization 1", eml.getPublisherOrganizationName());
 
       // geospatial coverages tests
       assertNotNull(eml.getGeospatialCoverages());
@@ -300,7 +324,7 @@ public class EmlFactoryTest {
       assertEquals(
           "Birds", eml.getTaxonomicCoverages().get(1).getTaxonKeywords().get(0).getCommonName());
 
-      assertEquals("Provide data to the whole world.", eml.getPurpose());
+      assertEquals("<para>Provide data to the whole world.</para>", eml.getPurpose());
 
       assertEquals("Changes done as needed.", eml.getUpdateFrequencyDescription());
       assertEquals(MaintenanceUpdateFrequency.AS_NEEDED, eml.getUpdateFrequency());

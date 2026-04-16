@@ -18,7 +18,6 @@ import org.gbif.api.model.registry.Contact;
 import org.gbif.api.model.registry.Dataset;
 import org.gbif.api.model.registry.Endpoint;
 import org.gbif.api.model.registry.Identifier;
-import org.gbif.api.model.registry.MaintenanceChange;
 import org.gbif.api.model.registry.eml.Collection;
 import org.gbif.api.model.registry.eml.KeywordCollection;
 import org.gbif.api.model.registry.eml.ProjectAward;
@@ -1134,26 +1133,16 @@ public class DatasetEmlParserTest {
 
     assertEquals("Sample Metadata RLS", dataset.getTitle());
     assertEquals("test-1_3", dataset.getShortName());
+    assertEquals("Publishing Organization 1", dataset.getPublishingOrganizationName());
+    assertNotNull(dataset.getPublishingOrganizationKey());
+    assertEquals(
+        "619a4b95-1a82-4006-be6a-7dbe3c9b33c5", dataset.getPublishingOrganizationKey().toString());
 
     assertNotNull(dataset.getHomepage());
     assertEquals("http://reeflifesurvey.com/", dataset.getHomepage().toString());
 
     assertEquals(MaintenanceUpdateFrequency.UNKNOWN, dataset.getMaintenanceUpdateFrequency());
     assertEquals("Data are updated in uneven intervals.", dataset.getMaintenanceDescription());
-    List<MaintenanceChange> maintenanceChangeHistory = dataset.getMaintenanceChangeHistory();
-    assertEquals(2, maintenanceChangeHistory.size());
-    MaintenanceChange maintenanceChange1 = maintenanceChangeHistory.get(0);
-    assertEquals("Exact scope change", maintenanceChange1.getChangeScope());
-    assertEquals(MaintenanceUpdateFrequency.ANNUALLY, maintenanceChange1.getOldValue());
-    assertNotNull(maintenanceChange1.getChangeDate());
-    assertTrue(maintenanceChange1.getChangeDate().toString().startsWith("Fri Apr 05"));
-    assertEquals("Maintenance update frequency update comment 1", maintenanceChange1.getComment());
-    MaintenanceChange maintenanceChange2 = maintenanceChangeHistory.get(1);
-    assertEquals("Scope", maintenanceChange2.getChangeScope());
-    assertEquals(MaintenanceUpdateFrequency.BIANNUALLY, maintenanceChange2.getOldValue());
-    assertNotNull(maintenanceChange2.getChangeDate());
-    assertTrue(maintenanceChange2.getChangeDate().toString().startsWith("Wed Jun 25"));
-    assertNull(maintenanceChange2.getComment());
 
     List<Contact> contactList = dataset.getContacts();
     assertEquals(6, contactList.size());
@@ -1267,6 +1256,7 @@ public class DatasetEmlParserTest {
     assertEquals("http://www.researcherid.com/rid/Z-1234-2014", contact2.getUserId().get(0));
 
     // Project personnel
+    assertNotNull(dataset.getProject());
     List<Contact> personnelList = dataset.getProject().getContacts();
     assertEquals(2, personnelList.size());
 
@@ -1378,25 +1368,25 @@ public class DatasetEmlParserTest {
     assertNotNull(dataset.getDescription());
     String expectedDescription =
         "<div>\n"
-            + "  <h1>A separate section</h1>\n"
-            + "  <p>More text</p>\n"
-            + "  <p>And more text, with\n"
+            + "  <h1>A separate section &amp; \"</h1>\n"
+            + "  <p>More text  &lt; </p>\n"
+            + "  <p>And more text, with  &gt; </p>\n"
             + "    <ul>\n"
-            + "      <li><p>First item</p></li>\n"
+            + "      <li>First item</li>\n"
             + "    </ul>\n"
             + "    <ol>\n"
-            + "      <li><p>First item</p></li>\n"
+            + "      <li>First item</li>\n"
             + "    </ol>\n"
-            + "    <a href=\"https://example.org\">Example link</a>\n"
+            + "    <p><a href=\"https://example.org\">Example link</a>\n"
             + "  </p>\n"
             + "  <div>\n"
             + "    <h1>A sub-section</h1>\n"
-            + "    <p><em>Emphasis</em>\n"
+            + "    <p><b>Emphasis</b>\n"
             + "      CO<sub>2</sub> (or just CO₂)\n"
             + "      m<sup>3</sup> (or just m³)\n"
-            + "      <code>\n"
+            + "      <pre>\n"
             + "        x = fn(y, z)\n"
-            + "      </code>\n"
+            + "      </pre>\n"
             + "    </p>\n"
             + "  </div>\n"
             + "</div>\n"
@@ -1417,7 +1407,7 @@ public class DatasetEmlParserTest {
     assertEquals(7, dataset.getBibliographicCitations().size());
 
     // Purpose
-    assertEquals("The purpose of this dataset.", dataset.getPurpose());
+    assertEquals("<p>The purpose of this dataset.</p>", dataset.getPurpose());
 
     // introduction, gettingStarted, acknowledgements
     String expectedIntroduction =
@@ -1430,17 +1420,17 @@ public class DatasetEmlParserTest {
             + "        and others.</p>\n"
             + "      <p>\n"
             + "        And bulleted lists are also supported:\n"
-            + "        <ul>\n"
-            + "          <li><p>Science</p></li>\n"
-            + "          <li><p>Engineering</p></li>\n"
-            + "          <li><p>Math</p></li>\n"
-            + "        </ul>\n"
             + "      </p>\n"
+            + "        <ul>\n"
+            + "          <li>Science</li>\n"
+            + "          <li>Engineering</li>\n"
+            + "          <li>Math</li>\n"
+            + "        </ul>\n"
             + "      <p>\n"
             + "        It can also include equations:\n"
-            + "        <code>\n"
+            + "        <pre>\n"
             + "        $$\\left( x + a \\right)^{n} = \\sum_{k = 0}^{n}{\\left( \\frac{n}{k} \\right)x^{k}a^{n - k}}$$\n"
-            + "        </code>\n"
+            + "        </pre>\n"
             + "      </p>\n"
             + "      <p>\n"
             + "        Plus, it can include all of the other features of [Github Flavored Markdown (GFM)](https://github.github.com/gfm/).\n"

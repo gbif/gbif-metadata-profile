@@ -24,6 +24,7 @@ import org.gbif.metadata.eml.ipt.model.JGTICuratorialUnit;
 import org.gbif.metadata.eml.ipt.model.KeywordSet;
 import org.gbif.metadata.eml.ipt.model.PhysicalData;
 import org.gbif.metadata.eml.ipt.model.Project;
+import org.gbif.metadata.eml.ipt.model.ProjectAward;
 import org.gbif.metadata.eml.ipt.model.StudyAreaDescription;
 import org.gbif.metadata.eml.ipt.model.TaxonKeyword;
 import org.gbif.metadata.eml.ipt.model.TaxonomicCoverage;
@@ -32,11 +33,23 @@ import org.gbif.metadata.eml.ipt.model.UserId;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
+import org.apache.commons.beanutils.MethodUtils;
 import org.apache.commons.digester3.Digester;
 import org.apache.commons.digester3.NodeCreateRule;
+import org.apache.commons.lang3.StringUtils;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -87,11 +100,21 @@ public class EmlFactory {
     digester.addCallParam("eml/dataset/title", 0);
     digester.addCallParam("eml/dataset/title", 1, "xml:lang");
 
+    // shortName
+    digester.addCallMethod("eml/dataset/shortName", "setShortName", 1);
+    digester.addCallParam("eml/dataset/shortName", 0);
+
     digester.addBeanPropertySetter("eml/dataset/language", "language");
 
-    // descriptions, broken into multiple paragraphs
-    digester.addCallMethod("eml/dataset/abstract/para", "addDescriptionPara", 1);
-    digester.addCallParam("eml/dataset/abstract/para", 0);
+    // DocBook description, gettingStarted, introduction, acknowledgements, purpose
+    digester.addRule("eml/dataset/abstract", new DocBookRule("setDescription", "abstract"));
+    digester.addRule(
+        "eml/dataset/gettingStarted", new DocBookRule("setGettingStarted", "gettingStarted"));
+    digester.addRule(
+        "eml/dataset/introduction", new DocBookRule("setIntroduction", "introduction"));
+    digester.addRule(
+        "eml/dataset/acknowledgements", new DocBookRule("setAcknowledgements", "acknowledgements"));
+    digester.addRule("eml/dataset/purpose", new DocBookRule("setPurpose", "purpose"));
 
     digester.addBeanPropertySetter("eml/dataset/additionalInfo/para", "additionalInfo");
     digester.addRule("eml/dataset/intellectualRights/para", new NodeCreateRule(Node.ELEMENT_NODE));
@@ -104,8 +127,11 @@ public class EmlFactory {
         "eml/dataset/methods/sampling/samplingDescription/para", "sampleDescription");
     digester.addBeanPropertySetter(
         "eml/dataset/methods/qualityControl/description/para", "qualityControl");
-    digester.addBeanPropertySetter("eml/dataset/distribution/online/url", "distributionUrl");
-    digester.addBeanPropertySetter("eml/dataset/purpose/para", "purpose");
+
+    digester.addCallMethod("eml/dataset/distribution/online/url", "setDistribution", 2);
+    digester.addCallParam("eml/dataset/distribution/online/url", 0);
+    digester.addCallParam("eml/dataset/distribution/online/url", 1, "function");
+
     digester.addBeanPropertySetter(
         "eml/dataset/maintenance/description/para", "updateFrequencyDescription");
     digester.addCallMethod(
@@ -128,6 +154,10 @@ public class EmlFactory {
 
     digester.addCallMethod("eml/additionalMetadata/metadata/gbif/dateStamp", "setDateStamp", 1);
     digester.addCallParam("eml/additionalMetadata/metadata/gbif/dateStamp", 0);
+
+    digester.addCallMethod("eml/dataset/publisher", "setPublisher", 2);
+    digester.addCallParam("eml/dataset/publisher/", 0, "id");
+    digester.addCallParam("eml/dataset/publisher/organizationName", 1);
 
     addAgentRules(digester, "eml/dataset/creator", "addCreator");
     addAgentRules(digester, "eml/dataset/metadataProvider", "addMetadataProvider");
@@ -168,7 +198,8 @@ public class EmlFactory {
     digester.addBeanPropertySetter(prefix + "/individualName/givenName", "firstName");
     digester.addBeanPropertySetter(prefix + "/individualName/surName", "lastName");
     digester.addBeanPropertySetter(prefix + "/organizationName", "organisation");
-    digester.addBeanPropertySetter(prefix + "/positionName", "position");
+    digester.addCallMethod(prefix + "/positionName", "addPosition", 1);
+    digester.addCallParam(prefix + "/positionName", 0);
     digester.addCallMethod(prefix + "/phone", "addPhone", 1);
     digester.addCallParam(prefix + "/phone", 0);
     digester.addCallMethod(prefix + "/electronicMailAddress", "addEmail", 1);
@@ -363,10 +394,34 @@ public class EmlFactory {
     addAgentRules(digester, "eml/dataset/project/personnel", "addProjectPersonnel");
     digester.addBeanPropertySetter("eml/dataset/project/abstract/para", "description");
     digester.addBeanPropertySetter("eml/dataset/project/funding/para", "funding");
+    addProjectAwardsRules(digester, "addAward");
+    addRelatedProjectsRules(digester, "addRelatedProject");
     addStudyAreaDescriptionRules(digester);
     digester.addBeanPropertySetter(
         "eml/dataset/project/designDescription/description/para", "designDescription");
     digester.addSetNext("eml/dataset/project", "setProject");
+  }
+
+  private static void addProjectAwardsRules(Digester digester, String parentMethod) {
+    digester.addObjectCreate("eml/dataset/project/award", ProjectAward.class);
+    digester.addBeanPropertySetter("eml/dataset/project/award/funderName", "funderName");
+    digester.addBeanPropertySetter("eml/dataset/project/award/awardNumber", "awardNumber");
+    digester.addBeanPropertySetter("eml/dataset/project/award/title", "title");
+    digester.addBeanPropertySetter("eml/dataset/project/award/awardUrl", "awardUrl");
+    digester.addCallMethod("eml/dataset/project/award/funderIdentifier", "addFunderIdentifier", 0);
+
+    digester.addSetNext("eml/dataset/project/award", parentMethod);
+  }
+
+  private static void addRelatedProjectsRules(Digester digester, String parentMethod) {
+    digester.addObjectCreate("eml/dataset/project/relatedProject", Project.class);
+    digester.addCallMethod("eml/dataset/project/relatedProject", "setIdentifier", 1);
+    digester.addCallParam("eml/dataset/project/relatedProject", 0, "id");
+    digester.addBeanPropertySetter("eml/dataset/project/relatedProject/title", "title");
+    digester.addBeanPropertySetter("eml/dataset/project/relatedProject/abstract", "abstract");
+    addAgentRules(digester, "eml/dataset/project/relatedProject/personnel", "addProjectPersonnel");
+
+    digester.addSetNext("eml/dataset/project/relatedProject", parentMethod);
   }
 
   /**
@@ -466,5 +521,90 @@ public class EmlFactory {
         "addJgtiCuratorialUnit"); // add the
     // JGTICuratorialIUnit to the list in
     // EML
+  }
+
+  // Converter to literal XML (DocBook) ant then to HTML
+  public static class DocBookRule extends NodeCreateRule {
+
+    private String method;
+    private String wrapperElement;
+
+    public DocBookRule() throws ParserConfigurationException {
+      super(Node.ELEMENT_NODE);
+    }
+
+    public DocBookRule(String method, String wrapperElement) throws ParserConfigurationException {
+      this.method = method;
+      this.wrapperElement = wrapperElement;
+    }
+
+    @Override
+    public void end(String namespace, String name) throws Exception {
+      Element nodeToSerialize = super.getDigester().pop();
+      String serializedNode = serializeNode(nodeToSerialize);
+      invokeMethodOnTopOfStack(method, serializedNode);
+    }
+
+    protected String serializeNode(Element nodeToSerialize) throws Exception {
+      String output;
+
+      try (StringWriter writer = new StringWriter()) {
+        // Create a new Document to serialize the node
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.newDocument();
+
+        // Import the node to serialize into the new Document
+        Element importedNode = (Element) doc.importNode(nodeToSerialize, true);
+        doc.appendChild(importedNode);
+
+        // Set up the Transformer to handle XML serialization
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+
+        // Set Transformer output properties
+        transformer.setOutputProperty(OutputKeys.INDENT, "no"); // Disable indentation
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+
+        // Serialize the node to a string
+        DOMSource source = new DOMSource(importedNode);
+        StreamResult result = new StreamResult(writer);
+        transformer.transform(source, result);
+
+        // Get the serialized XML string
+        String serializedDocBookXml = writer.toString();
+
+        // Handle specific whitespace formatting for <pre> tags
+        serializedDocBookXml = preservePreformattedWhitespace(serializedDocBookXml);
+
+        // Unwrap the parent tag
+        String unwrappedDocBookXml = unwrapParentTag(serializedDocBookXml);
+
+        // Convert DocBook XML to HTML
+        output = unwrappedDocBookXml;
+      }
+
+      return output;
+    }
+
+    private String preservePreformattedWhitespace(String xmlString) {
+      // This method preserves whitespace in <pre> tags by restoring line breaks and indentations
+      xmlString = xmlString.replaceAll("(<pre>)(.*?)(</pre>)", "$1\n$2\n$3");
+      return xmlString;
+    }
+
+    private String unwrapParentTag(String str) {
+      return StringUtils.replaceEach(
+          str,
+          new String[] {"<" + wrapperElement + ">", "</" + wrapperElement + ">"},
+          new String[] {"", ""});
+    }
+
+    protected void invokeMethodOnTopOfStack(String methodName, String param) throws Exception {
+      Object objOnTopOfStack = getDigester().peek();
+      MethodUtils.invokeExactMethod(objOnTopOfStack, methodName, param);
+    }
   }
 }

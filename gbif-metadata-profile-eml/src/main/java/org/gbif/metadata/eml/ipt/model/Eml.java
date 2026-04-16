@@ -37,6 +37,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -51,10 +52,62 @@ import org.slf4j.LoggerFactory;
  *
  * @see EmlFactory
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "LombokGetterMayBeUsed", "LombokSetterMayBeUsed"})
 public class Eml implements Serializable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Eml.class);
+
+  // Define pairs of DocBook tags. MUST MATCH HTML tags!
+  private static final String[] DOCBOOK_TAGS = {
+    "<section>", "</section>",
+    "<title>", "</title>",
+    "<title>", "</title>",
+    "<title>", "</title>",
+    "<title>", "</title>",
+    "<title>", "</title>",
+    "<para><itemizedlist>", "</itemizedlist></para>",
+    "<para><orderedlist>", "</orderedlist></para>",
+    "<listitem><para>", "</para></listitem>",
+    "<para>", "</para>",
+    "<emphasis>", "</emphasis>",
+    "<subscript>", "</subscript>",
+    "<superscript>", "</superscript>",
+    "<literalLayout>", "</literalLayout>"
+  };
+
+  // Define pairs of HTML tags. MUST MATCH DocBook tags!
+  private static final String[] HTML_TAGS = {
+    "<div>", "</div>",
+    "<h1>", "</h1>",
+    "<h2>", "</h2>",
+    "<h3>", "</h3>",
+    "<h4>", "</h4>",
+    "<h5>", "</h5>",
+    "<ul>", "</ul>",
+    "<ol>", "</ol>",
+    "<li>", "</li>",
+    "<p>", "</p>",
+    "<b>", "</b>",
+    "<sub>", "</sub>",
+    "<sup>", "</sup>",
+    "<pre>", "</pre>"
+  };
+
+  // List of allowed DocBook tags
+  private static final String[] ALLOWED_DOCBOOK_TAGS = {
+    "section",
+    "title",
+    "para",
+    "itemizedlist",
+    "orderedlist",
+    "listitem",
+    "emphasis",
+    "subscript",
+    "superscript",
+    "literalLayout",
+    "ulink",
+    "citetitle"
+  };
 
   private static final Pattern PACKAGED_ID_PATTERN = Pattern.compile("/v([0-9]+(\\.\\d+)?)$");
   private static final char SEMICOLON = ';';
@@ -77,7 +130,7 @@ public class Eml implements Serializable {
   /**
    * Description, composed of one or more paragraphs.
    */
-  private List<String> description = new ArrayList<>();
+  private String description;
 
   /**
    * This is not in the GBIF extended metadata document, but seems like a sensible placeholder that can be used to
@@ -107,11 +160,18 @@ public class Eml implements Serializable {
    * Date of metadata creation or the last metadata update Default to now(), but can be overridden
    */
   private Date dateStamp = new Date();
+
   /**
    * The distributionType URL is generally meant for informational purposes, and the "function" attribute should be set
    * to "information".
    */
   private String distributionUrl;
+
+  /**
+   * Download URL
+   */
+  private String distributionDownloadUrl;
+
   /**
    * Serialised data
    */
@@ -208,6 +268,21 @@ public class Eml implements Serializable {
   private String purpose;
 
   /**
+   * <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_introduction">Introduction</a>
+   */
+  private String introduction;
+
+  /**
+   * <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_gettingStarted">Getting started</a>
+   */
+  private String gettingStarted;
+
+  /**
+   * <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_acknowledgements">Acknowledgements</a>
+   */
+  private String acknowledgements;
+
+  /**
    * A text description of the maintenance of this data resource.
    *
    * @see <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#MaintenanceType_description">MaintenanceUpdateFrequency description</a>
@@ -247,6 +322,16 @@ public class Eml implements Serializable {
   private List<Agent> contacts = new ArrayList<>();
 
   /**
+   * @see <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_publisher">EML Dataset publisher</a>
+   */
+  private String publisherId;
+
+  /**
+   * @see <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_publisher">EML Dataset publisher</a>
+   */
+  private String publisherOrganizationName;
+
+  /**
    * Picklist keyword indicating the process or technique used to prevent physical deterioration of non-living
    * collections. Expected to contain an instance from the Specimen Preservation Method Type Term vocabulary.
    *
@@ -267,6 +352,8 @@ public class Eml implements Serializable {
   private String guid;
 
   private String title;
+
+  private String shortName;
 
   /**
    * The coverage field allows for a textual description of the specific sampling area, the sampling frequency
@@ -418,6 +505,25 @@ public class Eml implements Serializable {
 
   public void setDistributionUrl(String distributionUrl) {
     this.distributionUrl = distributionUrl;
+  }
+
+  public String getDistributionDownloadUrl() {
+    if (distributionDownloadUrl == null || distributionDownloadUrl.isEmpty()) {
+      return null;
+    }
+    return distributionDownloadUrl;
+  }
+
+  public void setDistributionDownloadUrl(String distributionDownloadUrl) {
+    this.distributionDownloadUrl = distributionDownloadUrl;
+  }
+
+  public void setDistribution(String distribution, String function) {
+    if ("information".equals(function)) {
+      setDistributionUrl(distribution);
+    } else if ("download".equals(function)) {
+      setDistributionDownloadUrl(distribution);
+    }
   }
 
   public BigDecimal getEmlVersion() {
@@ -656,6 +762,30 @@ public class Eml implements Serializable {
     this.purpose = purpose;
   }
 
+  public String getIntroduction() {
+    return introduction;
+  }
+
+  public void setIntroduction(String introduction) {
+    this.introduction = introduction;
+  }
+
+  public String getGettingStarted() {
+    return gettingStarted;
+  }
+
+  public void setGettingStarted(String gettingStarted) {
+    this.gettingStarted = gettingStarted;
+  }
+
+  public String getAcknowledgements() {
+    return acknowledgements;
+  }
+
+  public void setAcknowledgements(String acknowledgements) {
+    this.acknowledgements = acknowledgements;
+  }
+
   public String getUpdateFrequencyDescription() {
     if (StringUtils.isEmpty(updateFrequencyDescription)) {
       return null;
@@ -703,6 +833,22 @@ public class Eml implements Serializable {
 
   public void setContacts(List<Agent> contacts) {
     this.contacts = contacts;
+  }
+
+  public String getPublisherId() {
+    return publisherId;
+  }
+
+  public void setPublisherId(String publisherId) {
+    this.publisherId = publisherId;
+  }
+
+  public String getPublisherOrganizationName() {
+    return publisherOrganizationName;
+  }
+
+  public void setPublisherOrganizationName(String publisherOrganizationName) {
+    this.publisherOrganizationName = publisherOrganizationName;
   }
 
   public String getQualityControl() {
@@ -761,6 +907,14 @@ public class Eml implements Serializable {
     this.title = title;
   }
 
+  public String getShortName() {
+    return shortName;
+  }
+
+  public void setShortName(String shortName) {
+    this.shortName = shortName;
+  }
+
   public String getCitationString() {
     if (citation != null) {
       return citation.getCitation();
@@ -784,7 +938,7 @@ public class Eml implements Serializable {
     return null;
   }
 
-  public List<String> getDescription() {
+  public String getDescription() {
     return getAbstract();
   }
 
@@ -834,15 +988,6 @@ public class Eml implements Serializable {
 
   public void addAlternateIdentifier(String alternateIdentifier) {
     alternateIdentifiers.add(alternateIdentifier);
-  }
-
-  /**
-   * Adds another paragraph to description.
-   *
-   * @param para paragraph
-   */
-  public void addDescriptionPara(String para) {
-    description.add(para);
   }
 
   /**
@@ -999,7 +1144,7 @@ public class Eml implements Serializable {
     this.intellectualRights = paraXmlToHtml(xmlStr);
   }
 
-  public List<String> getAbstract() {
+  public String getAbstract() {
     return description;
   }
 
@@ -1011,7 +1156,7 @@ public class Eml implements Serializable {
     return guid + "/v" + emlVersion.toPlainString();
   }
 
-  public void setAbstract(List<String> description) {
+  public void setAbstract(String description) {
     this.description = description;
   }
 
@@ -1023,7 +1168,7 @@ public class Eml implements Serializable {
     this.citation = new Citation(citation, identifier);
   }
 
-  public void setDescription(List<String> description) {
+  public void setDescription(String description) {
     this.description = description;
   }
 
@@ -1054,6 +1199,11 @@ public class Eml implements Serializable {
 
   public void setPublished(Date published) {
     pubDate = published;
+  }
+
+  public void setPublisher(String publisherId, String publisherName) {
+    setPublisherId(publisherId);
+    setPublisherOrganizationName(publisherName);
   }
 
   public void setSubject(List<String> keywords) {
@@ -1140,6 +1290,7 @@ public class Eml implements Serializable {
         && Objects.equals(citation, eml.citation)
         && Objects.equals(dateStamp, eml.dateStamp)
         && Objects.equals(distributionUrl, eml.distributionUrl)
+        && Objects.equals(distributionDownloadUrl, eml.distributionDownloadUrl)
         && Objects.equals(emlVersion, eml.emlVersion)
         && Objects.equals(previousEmlVersion, eml.previousEmlVersion)
         && Objects.equals(geospatialCoverages, eml.geospatialCoverages)
@@ -1161,12 +1312,15 @@ public class Eml implements Serializable {
         && Objects.equals(creators, eml.creators)
         && Objects.equals(metadataProviders, eml.metadataProviders)
         && Objects.equals(contacts, eml.contacts)
+        && Objects.equals(publisherId, eml.publisherId)
+        && Objects.equals(publisherOrganizationName, eml.publisherOrganizationName)
         && Objects.equals(specimenPreservationMethods, eml.specimenPreservationMethods)
         && Objects.equals(taxonomicCoverages, eml.taxonomicCoverages)
         && Objects.equals(temporalCoverages, eml.temporalCoverages)
         && Objects.equals(link, eml.link)
         && Objects.equals(guid, eml.guid)
         && Objects.equals(title, eml.title)
+        && Objects.equals(shortName, eml.shortName)
         && Objects.equals(studyExtent, eml.studyExtent)
         && Objects.equals(sampleDescription, eml.sampleDescription)
         && Objects.equals(qualityControl, eml.qualityControl)
@@ -1184,6 +1338,7 @@ public class Eml implements Serializable {
         citation,
         dateStamp,
         distributionUrl,
+        distributionDownloadUrl,
         emlVersion,
         previousEmlVersion,
         majorVersion,
@@ -1207,12 +1362,15 @@ public class Eml implements Serializable {
         creators,
         metadataProviders,
         contacts,
+        publisherId,
+        publisherOrganizationName,
         specimenPreservationMethods,
         taxonomicCoverages,
         temporalCoverages,
         link,
         guid,
         title,
+        shortName,
         studyExtent,
         sampleDescription,
         qualityControl,
@@ -1230,6 +1388,7 @@ public class Eml implements Serializable {
         .add("citation=" + citation)
         .add("dateStamp=" + dateStamp)
         .add("distributionUrl='" + distributionUrl + "'")
+        .add("distributionDownloadUrl='" + distributionDownloadUrl + "'")
         .add("emlVersion=" + emlVersion)
         .add("previousEmlVersion=" + previousEmlVersion)
         .add("majorVersion=" + majorVersion)
@@ -1253,12 +1412,15 @@ public class Eml implements Serializable {
         .add("creators=" + creators)
         .add("metadataProviders=" + metadataProviders)
         .add("contacts=" + contacts)
+        .add("publisherId='" + publisherId + "'")
+        .add("publisherOrganizationName='" + publisherOrganizationName + "'")
         .add("specimenPreservationMethods=" + specimenPreservationMethods)
         .add("taxonomicCoverages=" + taxonomicCoverages)
         .add("temporalCoverages=" + temporalCoverages)
         .add("link='" + link + "'")
         .add("guid='" + guid + "'")
         .add("title='" + title + "'")
+        .add("shortName='" + shortName + "'")
         .add("studyExtent='" + studyExtent + "'")
         .add("sampleDescription='" + sampleDescription + "'")
         .add("qualityControl='" + qualityControl + "'")
@@ -1376,5 +1538,134 @@ public class Eml implements Serializable {
       }
     }
     return licenseUrl;
+  }
+
+  // Value with all HTML tags replaced by DocBook analogues
+  public String getDocBookField(String fieldName) {
+    String result = null;
+
+    try {
+      String value = BeanUtils.getProperty(this, fieldName);
+
+      if (value != null) {
+        result = replaceDocBookElements(value.trim());
+      }
+    } catch (Exception e) {
+      LOG.error("Error parsing field: {}", fieldName, e);
+    }
+
+    return result;
+  }
+
+  private String replaceDocBookElements(String value) {
+    // Handle <a> to <ulink> conversion
+    String htmlStringWithLinksReplaced =
+        value.replaceAll(
+            "<a\\s+href=\"(.*?)\">\\s*(.*?)\\s*</a>",
+            "<ulink url=\"$1\"><citetitle>$2</citetitle></ulink>");
+
+    // Perform replacements
+    String docBookString =
+        StringUtils.replaceEach(htmlStringWithLinksReplaced, HTML_TAGS, DOCBOOK_TAGS);
+
+    // Escape special characters except for allowed DocBook tags
+    return escapeExceptAllowedTags(docBookString);
+  }
+
+  private String escapeExceptAllowedTags(String input) {
+    StringBuilder output = new StringBuilder();
+
+    // Use regex to split input into tags and text segments
+    String[] parts = input.split("(?=<[^>]+>)|(?<=>)");
+
+    for (String part : parts) {
+      // No need to trim whitespace here to preserve leading/trailing spaces
+      if (part.matches("^<[^>]+>$")) {
+        // If it's a tag, check if it's an allowed HTML tag
+        String tagName = getTagName(part);
+        if (isAllowedDocBookTag(tagName) || isDocBookLink(part)) {
+          // Preserve allowed tags as-is
+          output.append(part);
+        } else {
+          // Escape non-allowed tags
+          output.append(customEscape(part));
+        }
+      } else {
+        // Escape special characters in text
+        output.append(customEscape(part));
+      }
+    }
+
+    return output.toString();
+  }
+
+  // Helper method to extract the tag name (without <>)
+  private String getTagName(String tag) {
+    return tag.replaceAll("[<>/]", "").split("\\s+")[0];
+  }
+
+  // Helper method to check if a tag is an allowed DocBook tag
+  private boolean isAllowedDocBookTag(String tagName) {
+    for (String allowedTag : ALLOWED_DOCBOOK_TAGS) {
+      if (allowedTag.equalsIgnoreCase(tagName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Helper method to check if a tag is an DocBook ulink
+  private boolean isDocBookLink(String tag) {
+    return tag.matches("^<ulink\\s+url=\".*?\">.*?</ulink>$");
+  }
+
+  private String customEscape(String input) {
+    StringBuilder escaped = new StringBuilder();
+    int length = input.length();
+
+    for (int i = 0; i < length; i++) {
+      char c = input.charAt(i);
+
+      // Check for '&' to identify potential escaped entities
+      if (c == '&' && i + 3 < length) {
+        // Extract the next few characters after '&' to check if it's a known escaped entity
+        String potentialEntity =
+            input.substring(i, Math.min(i + 6, length)); // "&nbsp;" is 6 characters
+
+        if (potentialEntity.startsWith("&nbsp;")) {
+          // Replace &nbsp; with &#160;
+          escaped.append("&#160;");
+          i += 5; // Skip the characters of "&nbsp;"
+          continue;
+        } else if (potentialEntity.startsWith("&amp;")
+            || potentialEntity.startsWith("&lt;")
+            || potentialEntity.startsWith("&gt;")
+            || potentialEntity.startsWith("&quot;")
+            || potentialEntity.startsWith("&apos;")) {
+          // If it's an already escaped entity, append it as-is and skip ahead
+          escaped.append(potentialEntity);
+          i += potentialEntity.length() - 1; // Skip the already escaped entity
+          continue;
+        }
+      }
+
+      // Now escape only unescaped characters
+      switch (c) {
+        case '&':
+          escaped.append("&amp;");
+          break;
+        case '<':
+          escaped.append("&lt;");
+          break;
+        case '>':
+          escaped.append("&gt;");
+          break;
+        default:
+          // Preserve other characters (including Unicode characters)
+          escaped.append(c);
+      }
+    }
+
+    return escaped.toString();
   }
 }

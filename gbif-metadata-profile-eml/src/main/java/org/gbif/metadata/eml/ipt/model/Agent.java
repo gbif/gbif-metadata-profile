@@ -16,45 +16,38 @@ package org.gbif.metadata.eml.ipt.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.StringJoiner;
 
 import org.apache.commons.lang3.StringUtils;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Encapsulates all the information for an Agent.
  */
+@Setter
+@EqualsAndHashCode
+@ToString
 public class Agent implements Serializable {
 
   private static final long serialVersionUID = 7028536657833651816L;
 
+  @Getter private String salutation;
   private String firstName;
   private String lastName;
   private String organisation;
-  private String position;
-  // TODO: rename fields, phone -> phones etc. ???
-  // TODO: use lombok where possible?
-  private Address address = new Address();
-  private List<String> phone = new ArrayList<>();
-  private List<String> email = new ArrayList<>();
-  private String role;
-  private List<String> homepage = new ArrayList<>();
-  private List<UserId> userIds = new ArrayList<>();
+  @Getter private List<String> position = new ArrayList<>();
+  @Getter private Address address = new Address();
+  @Getter private List<String> phone = new ArrayList<>();
+  @Getter private List<String> email = new ArrayList<>();
+  @Getter private String role;
+  @Getter private List<String> homepage = new ArrayList<>();
+  @Getter private List<UserId> userIds = new ArrayList<>();
 
-  public Address getAddress() {
-    return address;
-  }
-
-  public void setAddress(Address address) {
-    this.address = address;
-  }
-
-  public List<String> getEmail() {
-    return email;
-  }
-
-  public void setEmail(List<String> email) {
-    this.email = email;
+  public void addPosition(String position) {
+    this.position.add(position);
   }
 
   public void addEmail(String email) {
@@ -68,18 +61,6 @@ public class Agent implements Serializable {
     return firstName;
   }
 
-  public void setFirstName(String firstName) {
-    this.firstName = firstName;
-  }
-
-  public List<String> getHomepage() {
-    return homepage;
-  }
-
-  public void setHomepage(List<String> homepage) {
-    this.homepage = homepage;
-  }
-
   public void addHomepage(String homepage) {
     this.homepage.add(homepage);
   }
@@ -91,10 +72,6 @@ public class Agent implements Serializable {
     return lastName;
   }
 
-  public void setLastName(String lastName) {
-    this.lastName = lastName;
-  }
-
   public String getOrganisation() {
     if (organisation == null || organisation.isEmpty()) {
       return null;
@@ -102,47 +79,8 @@ public class Agent implements Serializable {
     return organisation;
   }
 
-  public void setOrganisation(String organisation) {
-    this.organisation = organisation;
-  }
-
-  public List<String> getPhone() {
-    return phone;
-  }
-
-  public void setPhone(List<String> phone) {
-    this.phone = phone;
-  }
-
   public void addPhone(String phone) {
     this.phone.add(phone);
-  }
-
-  public String getPosition() {
-    if (position == null || position.isEmpty()) {
-      return null;
-    }
-    return position;
-  }
-
-  public void setPosition(String position) {
-    this.position = position;
-  }
-
-  public List<UserId> getUserIds() {
-    return userIds;
-  }
-
-  public void setUserIds(List<UserId> userIds) {
-    this.userIds = userIds;
-  }
-
-  public String getRole() {
-    return role;
-  }
-
-  public void setRole(String role) {
-    this.role = role;
   }
 
   public String getFullName() {
@@ -166,59 +104,12 @@ public class Agent implements Serializable {
   }
 
   public boolean isEmpty() {
-    return StringUtils.isAllBlank(firstName, lastName, organisation, position, role)
+    return StringUtils.isAllBlank(firstName, lastName, organisation, role)
+        && position.isEmpty()
         && phone.isEmpty()
         && email.isEmpty()
         && homepage.isEmpty()
         && address.isEmpty()
         && userIds.isEmpty();
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Agent agent = (Agent) o;
-    return Objects.equals(firstName, agent.firstName)
-        && Objects.equals(lastName, agent.lastName)
-        && Objects.equals(organisation, agent.organisation)
-        && Objects.equals(position, agent.position)
-        && Objects.equals(address, agent.address)
-        && Objects.equals(phone, agent.phone)
-        && Objects.equals(email, agent.email)
-        && Objects.equals(role, agent.role)
-        && Objects.equals(homepage, agent.homepage)
-        && Objects.equals(userIds, agent.userIds);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        firstName,
-        lastName,
-        organisation,
-        position,
-        address,
-        phone,
-        email,
-        role,
-        homepage,
-        userIds);
-  }
-
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", Agent.class.getSimpleName() + "[", "]")
-        .add("firstName='" + firstName + "'")
-        .add("lastName='" + lastName + "'")
-        .add("organisation='" + organisation + "'")
-        .add("position='" + position + "'")
-        .add("address=" + address)
-        .add("phone='" + phone + "'")
-        .add("email='" + email + "'")
-        .add("role='" + role + "'")
-        .add("homepage='" + homepage + "'")
-        .add("userIds=" + userIds)
-        .toString();
   }
 }

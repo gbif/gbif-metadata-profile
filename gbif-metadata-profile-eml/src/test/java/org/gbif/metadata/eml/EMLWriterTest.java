@@ -46,6 +46,7 @@ public class EMLWriterTest {
   public void testWrite() throws Exception {
     Dataset d =
         DatasetEmlParser.build(IOUtils.toByteArray(FileUtils.classpathStream(TEST_EML_FILE)));
+    d.setDescription("Test & <p>more test</p> \" <div>Hello</div> <go>");
     d.setKey(UUID.randomUUID());
     StringWriter writer = new StringWriter();
     emlWriter.writeTo(d, writer);

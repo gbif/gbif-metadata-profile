@@ -29,10 +29,10 @@ import org.xml.sax.SAXException;
  */
 public class ValidatorFactory {
 
-  public static final String EML_SCHEMA_URL = "https://rs.gbif-uat.org/schema/eml-2.2.0/eml.xsd";
+  public static final String EML_SCHEMA_URL = "https://rs.gbif.org/schema/eml-2.2.0/eml.xsd";
 
   public static final String EML_GBIF_PROFILE_SCHEMA_URL =
-      "https://rs.gbif-uat.org/schema/eml-gbif-profile/1.3/eml-gbif-profile.xsd";
+      "https://rs.gbif.org/schema/eml-gbif-profile/1.3/eml-gbif-profile.xsd";
 
   /**
    * @return xml validator based on the official EML 2.2.0 xml schema hosted at GBIF for network performance issues only.

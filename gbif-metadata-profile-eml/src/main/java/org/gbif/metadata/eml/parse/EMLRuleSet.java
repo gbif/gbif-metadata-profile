@@ -17,7 +17,6 @@ import org.gbif.api.model.common.InterpretedEnum;
 import org.gbif.api.model.registry.Citation;
 import org.gbif.api.model.registry.Contact;
 import org.gbif.api.model.registry.Identifier;
-import org.gbif.api.model.registry.MaintenanceChange;
 import org.gbif.api.model.registry.eml.Collection;
 import org.gbif.api.model.registry.eml.DataDescription;
 import org.gbif.api.model.registry.eml.KeywordCollection;
@@ -58,6 +57,11 @@ import java.util.Date;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.Converter;
@@ -75,9 +79,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.Attributes;
 
-import com.sun.org.apache.xml.internal.serialize.OutputFormat;
-import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
-
 /**
  * Digester rules to parse EML dataset metadata documents together with a DatasetDelegator digester
  * model. The rules here ignore any namespace to be able to work with any eml versions after 2.0.
@@ -88,10 +89,12 @@ public class EMLRuleSet extends RuleSetBase {
   private static final String[] DOCBOOK_TAGS = {
     "<section>", "</section>",
     "<title>", "</title>",
-    "<para>", "</para>",
+    "<para><itemizedlist>", "</itemizedlist></para>",
+    "<para><orderedlist>", "</orderedlist></para>",
+    "<listitem><para>", "</para></listitem>",
     "<itemizedlist>", "</itemizedlist>",
-    "<listitem>", "</listitem>",
     "<orderedlist>", "</orderedlist>",
+    "<para>", "</para>",
     "<emphasis>", "</emphasis>",
     "<subscript>", "</subscript>",
     "<superscript>", "</superscript>",
@@ -102,14 +105,16 @@ public class EMLRuleSet extends RuleSetBase {
   private static final String[] HTML_TAGS = {
     "<div>", "</div>",
     "<h1>", "</h1>",
-    "<p>", "</p>",
     "<ul>", "</ul>",
-    "<li>", "</li>",
     "<ol>", "</ol>",
-    "<em>", "</em>",
+    "<li>", "</li>",
+    "<ul>", "</ul>",
+    "<ol>", "</ol>",
+    "<p>", "</p>",
+    "<b>", "</b>",
     "<sub>", "</sub>",
     "<sup>", "</sup>",
-    "<code>", "</code>"
+    "<pre>", "</pre>"
   };
 
   private void setupTypeConverters() {
@@ -211,22 +216,23 @@ public class EMLRuleSet extends RuleSetBase {
     addContactRules(digester, "eml/dataset/creator", "addPreferredOriginatorContact");
     addContactRules(digester, "eml/dataset/metadataProvider", "addPreferredMetadataContact");
     addContactRules(digester, "eml/dataset/associatedParty", "addContact");
-
     addContactRules(digester, "eml/dataset/contact", "addPreferredAdministrativeContact");
 
-    digester.addBeanPropertySetter("eml/dataset/purpose/para", "purpose");
+    // Publisher
+    digester.addCallMethod("eml/dataset/publisher", "setPublisher", 2);
+    digester.addCallParam("eml/dataset/publisher/", 0, "id");
+    digester.addCallParam("eml/dataset/publisher/organizationName", 1);
 
     addDocBookRule(digester, "eml/dataset/introduction", "setIntroduction", "introduction");
     addDocBookRule(digester, "eml/dataset/gettingStarted", "setGettingStarted", "gettingStarted");
     addDocBookRule(
         digester, "eml/dataset/acknowledgements", "setAcknowledgements", "acknowledgements");
+    addDocBookRule(digester, "eml/dataset/purpose", "setPurpose", "purpose");
 
     digester.addBeanPropertySetter(
         "eml/dataset/maintenance/description/para", "maintenanceDescription");
     digester.addBeanPropertySetter(
         "eml/dataset/maintenance/maintenanceUpdateFrequency", "maintenanceUpdateFrequency");
-    addMaintenanceChangeHistoryRules(
-        digester, "eml/dataset/maintenance/changeHistory", "addMaintenanceChange");
     digester.addBeanPropertySetter("eml/dataset/additionalInfo/para", "additionalInfo");
 
     // License
@@ -296,6 +302,7 @@ public class EMLRuleSet extends RuleSetBase {
       return new InterpretedEnum<String, Rank>();
     }
   }
+
   /**
    * This is a reusable set of rules to build Citation and add the Citation as per the method called
    * on parent object which is the previous stack object.
@@ -359,18 +366,6 @@ public class EMLRuleSet extends RuleSetBase {
     digester.addBeanPropertySetter(prefix + "/address/postalCode", "postalCode");
     digester.addBeanPropertySetter(prefix + "/address/country", "country");
     digester.addCallMethod(prefix + "/address/deliveryPoint", "addAddress", 0);
-    digester.addSetNext(prefix, parentMethod);
-  }
-
-  private void addMaintenanceChangeHistoryRules(
-      Digester digester, String prefix, String parentMethod) {
-    digester.addObjectCreate(prefix, MaintenanceChange.class);
-
-    digester.addBeanPropertySetter(prefix + "/changeScope", "changeScope");
-    digester.addBeanPropertySetter(prefix + "/oldValue", "oldValue");
-    digester.addBeanPropertySetter(prefix + "/changeDate", "changeDate");
-    digester.addBeanPropertySetter(prefix + "/comment", "comment");
-
     digester.addSetNext(prefix, parentMethod);
   }
 
@@ -588,24 +583,23 @@ public class EMLRuleSet extends RuleSetBase {
   private void addDocBookRule(
       Digester digester, String pattern, String method, String wrapperElement) {
     try {
-      digester.addRule(pattern, new SetSerializedNodeRule(method, wrapperElement));
+      digester.addRule(pattern, new DocBookRule(method, wrapperElement));
     } catch (ParserConfigurationException e) {
       // TODO log error, do something
     }
   }
 
   // Converter to literal XML (DocBook) ant then to HTML
-  public static class SetSerializedNodeRule extends NodeCreateRule {
+  public static class DocBookRule extends NodeCreateRule {
 
     private String method;
     private String wrapperElement;
 
-    public SetSerializedNodeRule() throws ParserConfigurationException {
+    public DocBookRule() throws ParserConfigurationException {
       super(Node.ELEMENT_NODE);
     }
 
-    public SetSerializedNodeRule(String method, String wrapperElement)
-        throws ParserConfigurationException {
+    public DocBookRule(String method, String wrapperElement) throws ParserConfigurationException {
       this.method = method;
       this.wrapperElement = wrapperElement;
     }
@@ -621,20 +615,50 @@ public class EMLRuleSet extends RuleSetBase {
       String htmlOutput;
 
       try (StringWriter writer = new StringWriter()) {
+        // Create a new Document to serialize the node
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.newDocument();
-        OutputFormat format = new OutputFormat(doc);
-        format.setOmitXMLDeclaration(true);
-        XMLSerializer serializer = new XMLSerializer(writer, format);
-        serializer.serialize(nodeToSerialize);
 
-        String serializedDocBookXml = writer.getBuffer().toString();
+        // Import the node to serialize into the new Document
+        Element importedNode = (Element) doc.importNode(nodeToSerialize, true);
+        doc.appendChild(importedNode);
+
+        // Set up the Transformer to handle XML serialization
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+
+        // Set Transformer output properties
+        transformer.setOutputProperty(OutputKeys.INDENT, "no"); // Disable indentation
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+
+        // Serialize the node to a string
+        DOMSource source = new DOMSource(importedNode);
+        StreamResult result = new StreamResult(writer);
+        transformer.transform(source, result);
+
+        // Get the serialized XML string
+        String serializedDocBookXml = writer.toString();
+
+        // Handle specific whitespace formatting for <pre> tags
+        serializedDocBookXml = preservePreformattedWhitespace(serializedDocBookXml);
+
+        // Unwrap the parent tag
         String unwrappedDocBookXml = unwrapParentTag(serializedDocBookXml);
+
+        // Convert DocBook XML to HTML
         htmlOutput = convertDocBookToHtml(unwrappedDocBookXml);
       }
 
       return htmlOutput;
+    }
+
+    private String preservePreformattedWhitespace(String xmlString) {
+      // This method preserves whitespace in <pre> tags by restoring line breaks and indentations
+      xmlString = xmlString.replaceAll("(<pre>)(.*?)(</pre>)", "$1\n$2\n$3");
+      return xmlString;
     }
 
     private String unwrapParentTag(String str) {
