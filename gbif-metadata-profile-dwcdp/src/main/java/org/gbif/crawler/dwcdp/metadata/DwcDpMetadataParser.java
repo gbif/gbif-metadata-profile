@@ -461,12 +461,8 @@ public class DwcDpMetadataParser {
     Contact contact = new Contact();
     String title = trimToNull(contributor.getTitle());
     String organization = trimToNull(contributor.getOrganization());
-    if (organization != null) {
-      splitPersonName(contact, title);
-      contact.setOrganization(organization);
-    } else {
-      contact.setOrganization(title);
-    }
+    contact.setLastName(title);
+    contact.setOrganization(organization);
     String email = trimToNull(contributor.getEmail());
     if (email != null) {
       contact.addEmail(email);
@@ -508,19 +504,6 @@ public class DwcDpMetadataParser {
     citation.setIdentifier(path);
     citation.setCitationProvidedBySource(true);
     return citation;
-  }
-
-  private static void splitPersonName(Contact contact, String fullName) {
-    if (fullName == null) {
-      return;
-    }
-    int lastSpace = fullName.lastIndexOf(' ');
-    if (lastSpace > 0) {
-      contact.setFirstName(fullName.substring(0, lastSpace).trim());
-      contact.setLastName(fullName.substring(lastSpace + 1).trim());
-    } else {
-      contact.setLastName(fullName);
-    }
   }
 
   private static ContactType parseContactType(String role) {

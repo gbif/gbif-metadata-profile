@@ -96,7 +96,7 @@ public class DwcDpMetadataParserTest {
 
     Contact author = dataset.getContacts().get(0);
     assertEquals("Jane Doe", author.getLastName());
-    assertEquals(ContactType.ORIGINATOR, author.getType());
+    assertEquals(ContactType.AUTHOR, author.getType());
 
     Contact publisher = dataset.getContacts().get(1);
     assertEquals("GBIF", publisher.getLastName());
