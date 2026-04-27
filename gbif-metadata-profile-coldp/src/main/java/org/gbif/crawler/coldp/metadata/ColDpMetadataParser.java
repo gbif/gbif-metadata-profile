@@ -19,13 +19,21 @@ import org.gbif.api.model.registry.Citation;
 import org.gbif.api.model.registry.Dataset;
 import org.gbif.api.model.registry.Identifier;
 import org.gbif.api.vocabulary.IdentifierType;
+import org.gbif.api.vocabulary.Language;
+import org.gbif.api.vocabulary.License;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -400,6 +408,29 @@ public class ColDpMetadataParser {
     dataset.setTitle(metadata.getTitle());
     dataset.setDescription(metadata.getDescription());
     dataset.setVersion(metadata.getVersion());
+
+    Date issued = parseDate(metadata.getIssued());
+    if (issued != null) {
+      dataset.setPubDate(issued);
+    }
+
+    String language = trimToNull(metadata.getLanguage());
+    if (language != null) {
+      dataset.setLanguage(Language.fromIsoCode(language));
+    }
+
+    String licenseText = trimToNull(metadata.getLicense());
+    if (licenseText != null) {
+      License.fromString(licenseText)
+          .or(() -> License.fromLicenseUrl(licenseText))
+          .ifPresent(dataset::setLicense);
+    }
+
+    String notes = trimToNull(metadata.getNotes());
+    if (notes != null) {
+      dataset.setAdditionalInfo(notes);
+    }
+
     URI logoUrl = toUri(metadata.getLogo());
     if (logoUrl != null) {
       dataset.setLogoUrl(logoUrl);
@@ -528,5 +559,26 @@ public class ColDpMetadataParser {
     }
     String trimmed = value.trim();
     return trimmed.isEmpty() ? null : trimmed;
+  }
+
+  private static Date parseDate(String issued) {
+    String value = trimToNull(issued);
+    if (value == null) {
+      return null;
+    }
+    try {
+      return Date.from(Instant.parse(value));
+    } catch (DateTimeParseException e) {
+      try {
+        return Date.from(OffsetDateTime.parse(value).toInstant());
+      } catch (DateTimeParseException e2) {
+        try {
+          return Date.from(LocalDate.parse(value).atStartOfDay(ZoneOffset.UTC).toInstant());
+        } catch (DateTimeParseException e3) {
+          LOG.warn("Could not parse issued date: {}", value);
+          return null;
+        }
+      }
+    }
   }
 }
