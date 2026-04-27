@@ -18,9 +18,12 @@ import org.gbif.api.model.registry.Contact;
 import org.gbif.api.model.registry.Citation;
 import org.gbif.api.model.registry.Dataset;
 import org.gbif.api.model.registry.Identifier;
+import org.gbif.api.model.registry.eml.TaxonomicCoverages;
+import org.gbif.api.model.registry.eml.temporal.VerbatimTimePeriod;
 import org.gbif.api.vocabulary.IdentifierType;
 import org.gbif.api.vocabulary.Language;
 import org.gbif.api.vocabulary.License;
+import org.gbif.common.parsers.LicenseParser;
 
 import java.io.File;
 import java.io.IOException;
@@ -162,13 +165,17 @@ public class ColDpMetadataParser {
     metadata.setLogo(asText(root.get("logo")));
     metadata.setLanguage(asText(firstPresent(root, "language", "defaultLanguage")));
     metadata.setNotes(asText(root.get("notes")));
+    metadata.setAlias(asText(root.get("alias")));
+    metadata.setTaxonomicScope(asText(root.get("taxonomicScope")));
+    metadata.setGeographicScope(asText(root.get("geographicScope")));
+    metadata.setTemporalScope(asText(root.get("temporalScope")));
     metadata.getIdentifiers().addAll(readIdentifiers(root.get("identifier")));
 
     addAgents(root.get("contact"), metadata.getContacts()::add);
     addAgents(root.get("creator"), metadata.getCreators()::add);
     addAgents(root.get("editor"), metadata.getEditors()::add);
     addAgents(root.get("contributor"), metadata.getContributors()::add);
-    addSources(root.get("sources"), metadata.getSources()::add);
+    addSources(firstPresent(root, "source", "sources"), metadata.getSources()::add);
     metadata.setPublisher(readAgent(root.get("publisher")));
     return metadata;
   }
@@ -421,9 +428,30 @@ public class ColDpMetadataParser {
 
     String licenseText = trimToNull(metadata.getLicense());
     if (licenseText != null) {
-      License.fromString(licenseText)
-          .or(() -> License.fromLicenseUrl(licenseText))
-          .ifPresent(dataset::setLicense);
+      LicenseParser licenseParser = LicenseParser.getInstance();
+      URI uri = toUri(licenseText);
+      License interpreted = licenseParser.parseUriThenTitle(uri, licenseText);
+      if (interpreted != License.UNSPECIFIED && interpreted != License.UNSUPPORTED) {
+        dataset.setLicense(interpreted);
+      }
+    }
+
+    dataset.setAlias(metadata.getAlias());
+
+    if (metadata.getGeographicScope() != null) {
+      dataset.setGeographicCoverageDescription(metadata.getGeographicScope());
+    }
+
+    if (metadata.getTaxonomicScope() != null) {
+      TaxonomicCoverages taxonomicCoverages = new TaxonomicCoverages();
+      taxonomicCoverages.setDescription(metadata.getTaxonomicScope());
+      dataset.getTaxonomicCoverages().add(taxonomicCoverages);
+    }
+
+    if (metadata.getTemporalScope() != null) {
+      VerbatimTimePeriod verbatimTimePeriod = new VerbatimTimePeriod();
+      verbatimTimePeriod.setPeriod(metadata.getTemporalScope());
+      dataset.getTemporalCoverages().add(verbatimTimePeriod);
     }
 
     String notes = trimToNull(metadata.getNotes());
@@ -472,7 +500,7 @@ public class ColDpMetadataParser {
     }
     for (ColDpMetadata.Agent agent : allAgents) {
       Contact contact = toContact(agent);
-      if (contact != null) {
+      if (contact != null && !dataset.getContacts().contains(contact)) {
         dataset.getContacts().add(contact);
       }
     }
@@ -507,11 +535,16 @@ public class ColDpMetadataParser {
     if (uri != null) {
       contact.addHomepage(uri);
     }
+    String orcid = trimToNull(agent.getOrcid());
+    if (orcid != null) {
+      contact.addUserId(orcid);
+    }
     if (trimToNull(contact.getFirstName()) == null
         && trimToNull(contact.getLastName()) == null
         && trimToNull(contact.getOrganization()) == null
         && contact.getEmail().isEmpty()
-        && contact.getHomepage().isEmpty()) {
+        && contact.getHomepage().isEmpty()
+        && (contact.getUserId() == null || contact.getUserId().isEmpty())) {
       return null;
     }
     return contact;

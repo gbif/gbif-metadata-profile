@@ -40,6 +40,43 @@ public class ColDpMetadata {
   private final List<Source> sources = new ArrayList<>();
   private Agent publisher;
 
+  private String alias;
+  private String taxonomicScope;
+  private String geographicScope;
+  private String temporalScope;
+
+  public String getAlias() {
+    return alias;
+  }
+
+  public void setAlias(String alias) {
+    this.alias = alias;
+  }
+
+  public String getTaxonomicScope() {
+    return taxonomicScope;
+  }
+
+  public void setTaxonomicScope(String taxonomicScope) {
+    this.taxonomicScope = taxonomicScope;
+  }
+
+  public String getGeographicScope() {
+    return geographicScope;
+  }
+
+  public void setGeographicScope(String geographicScope) {
+    this.geographicScope = geographicScope;
+  }
+
+  public String getTemporalScope() {
+    return temporalScope;
+  }
+
+  public void setTemporalScope(String temporalScope) {
+    this.temporalScope = temporalScope;
+  }
+
   public String getTitle() {
     return title;
   }
