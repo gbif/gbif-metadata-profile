@@ -48,7 +48,8 @@ public class EmlFactoryTest {
       assertNotNull(eml.getJgtiCuratorialUnits());
       assertEquals("jars", eml.getJgtiCuratorialUnits().get(0).getUnitType());
       assertEquals(Integer.valueOf(2000), eml.getJgtiCuratorialUnits().get(0).getRangeMean());
-      assertEquals(Integer.valueOf(50), eml.getJgtiCuratorialUnits().get(0).getUncertaintyMeasure());
+      assertEquals(
+          Integer.valueOf(50), eml.getJgtiCuratorialUnits().get(0).getUncertaintyMeasure());
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -372,15 +373,44 @@ public class EmlFactoryTest {
           "This was done in Avian Migration patterns", eml.getProject().getDesignDescription());
       assertEquals(1, eml.getProject().getRelatedProjects().size());
       assertEquals("Test related project", eml.getProject().getRelatedProjects().get(0).getTitle());
-      assertEquals("Test description for related project", eml.getProject().getRelatedProjects().get(0).getDescription());
+      assertEquals(
+          "Test description for related project",
+          eml.getProject().getRelatedProjects().get(0).getDescription());
       assertEquals(1, eml.getProject().getRelatedProjects().get(0).getPersonnel().size());
-      assertEquals("Mr.", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getSalutation());
-      assertEquals("John", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getFirstName());
-      assertEquals("Doe", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getLastName());
-      assertEquals("ORIGINATOR", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getRole());
-      assertEquals(1, eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getUserIds().size());
-      assertEquals("http://orcid.org/", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getUserIds().get(0).getDirectory());
-      assertEquals("0000-0002-1234-5678", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getUserIds().get(0).getIdentifier());
+      assertEquals(
+          "Mr.",
+          eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getSalutation());
+      assertEquals(
+          "John",
+          eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getFirstName());
+      assertEquals(
+          "Doe", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getLastName());
+      assertEquals(
+          "ORIGINATOR",
+          eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getRole());
+      assertEquals(
+          1,
+          eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getUserIds().size());
+      assertEquals(
+          "http://orcid.org/",
+          eml.getProject()
+              .getRelatedProjects()
+              .get(0)
+              .getPersonnel()
+              .get(0)
+              .getUserIds()
+              .get(0)
+              .getDirectory());
+      assertEquals(
+          "0000-0002-1234-5678",
+          eml.getProject()
+              .getRelatedProjects()
+              .get(0)
+              .getPersonnel()
+              .get(0)
+              .getUserIds()
+              .get(0)
+              .getIdentifier());
       assertEquals("doi:tims-ident.2135.ex43.33.d", eml.getCitation().getIdentifier());
       assertEquals("Tims assembled checklist", eml.getCitation().getCitation());
       assertEquals("en", eml.getMetadataLanguage());
