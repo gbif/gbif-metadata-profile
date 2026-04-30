@@ -195,6 +195,7 @@ public class EmlFactory {
    */
   private static void addAgentRules(Digester digester, String prefix, String parentMethod) {
     digester.addObjectCreate(prefix, Agent.class);
+    digester.addBeanPropertySetter(prefix + "/individualName/salutation", "salutation");
     digester.addBeanPropertySetter(prefix + "/individualName/givenName", "firstName");
     digester.addBeanPropertySetter(prefix + "/individualName/surName", "lastName");
     digester.addBeanPropertySetter(prefix + "/organizationName", "organisation");
@@ -394,15 +395,15 @@ public class EmlFactory {
     addAgentRules(digester, "eml/dataset/project/personnel", "addProjectPersonnel");
     digester.addBeanPropertySetter("eml/dataset/project/abstract/para", "description");
     digester.addBeanPropertySetter("eml/dataset/project/funding/para", "funding");
-    addProjectAwardsRules(digester, "addAward");
-    addRelatedProjectsRules(digester, "addRelatedProject");
+    addProjectAwardsRules(digester);
+    addRelatedProjectsRules(digester);
     addStudyAreaDescriptionRules(digester);
     digester.addBeanPropertySetter(
         "eml/dataset/project/designDescription/description/para", "designDescription");
     digester.addSetNext("eml/dataset/project", "setProject");
   }
 
-  private static void addProjectAwardsRules(Digester digester, String parentMethod) {
+  private static void addProjectAwardsRules(Digester digester) {
     digester.addObjectCreate("eml/dataset/project/award", ProjectAward.class);
     digester.addBeanPropertySetter("eml/dataset/project/award/funderName", "funderName");
     digester.addBeanPropertySetter("eml/dataset/project/award/awardNumber", "awardNumber");
@@ -410,18 +411,18 @@ public class EmlFactory {
     digester.addBeanPropertySetter("eml/dataset/project/award/awardUrl", "awardUrl");
     digester.addCallMethod("eml/dataset/project/award/funderIdentifier", "addFunderIdentifier", 0);
 
-    digester.addSetNext("eml/dataset/project/award", parentMethod);
+    digester.addSetNext("eml/dataset/project/award", "addAward");
   }
 
-  private static void addRelatedProjectsRules(Digester digester, String parentMethod) {
+  private static void addRelatedProjectsRules(Digester digester) {
     digester.addObjectCreate("eml/dataset/project/relatedProject", Project.class);
     digester.addCallMethod("eml/dataset/project/relatedProject", "setIdentifier", 1);
     digester.addCallParam("eml/dataset/project/relatedProject", 0, "id");
     digester.addBeanPropertySetter("eml/dataset/project/relatedProject/title", "title");
-    digester.addBeanPropertySetter("eml/dataset/project/relatedProject/abstract", "abstract");
+    digester.addBeanPropertySetter("eml/dataset/project/relatedProject/abstract", "description");
     addAgentRules(digester, "eml/dataset/project/relatedProject/personnel", "addProjectPersonnel");
 
-    digester.addSetNext("eml/dataset/project/relatedProject", parentMethod);
+    digester.addSetNext("eml/dataset/project/relatedProject", "addRelatedProject");
   }
 
   /**

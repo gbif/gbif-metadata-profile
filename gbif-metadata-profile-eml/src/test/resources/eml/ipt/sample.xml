@@ -322,6 +322,13 @@
             <funding>
                 <para>My Deep Pockets</para>
             </funding>
+          <award>
+            <funderName>Award Funder</funderName>
+            <funderIdentifier>AI123</funderIdentifier>
+            <awardNumber>777</awardNumber>
+            <title>Test Award</title>
+            <awardUrl>https://www.gbif.org/</awardUrl>
+          </award>
             <studyAreaDescription>
                 <descriptor name="generic" citableClassificationSystem="false">
                     <descriptorValue>Turkish Mountains</descriptorValue>
@@ -330,6 +337,19 @@
             <designDescription>
                 <description><para>This was done in Avian Migration patterns</para></description>
             </designDescription>
+          <relatedProject>
+            <title>Test related project</title>
+            <personnel>
+              <individualName>
+                <salutation>Mr.</salutation>
+                <givenName>John</givenName>
+                <surName>Doe</surName>
+              </individualName>
+              <userId directory="http://orcid.org/">0000-0002-1234-5678</userId>
+              <role>ORIGINATOR</role>
+            </personnel>
+            <abstract>Test description for related project</abstract>
+          </relatedProject>
         </project>
 
     </dataset>

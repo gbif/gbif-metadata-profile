@@ -47,8 +47,8 @@ public class EmlFactoryTest {
       // uncertainty is in sample2.xml
       assertNotNull(eml.getJgtiCuratorialUnits());
       assertEquals("jars", eml.getJgtiCuratorialUnits().get(0).getUnitType());
-      assertEquals(new Integer("2000"), eml.getJgtiCuratorialUnits().get(0).getRangeMean());
-      assertEquals(new Integer("50"), eml.getJgtiCuratorialUnits().get(0).getUncertaintyMeasure());
+      assertEquals(Integer.valueOf(2000), eml.getJgtiCuratorialUnits().get(0).getRangeMean());
+      assertEquals(Integer.valueOf(50), eml.getJgtiCuratorialUnits().get(0).getUncertaintyMeasure());
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -262,29 +262,29 @@ public class EmlFactoryTest {
       assertEquals(2, eml.getGeospatialCoverages().size());
       assertEquals("Bounding Box 1", eml.getGeospatialCoverages().get(0).getDescription());
       assertEquals(
-          new Double("23.975"),
+          Double.valueOf("23.975"),
           eml.getGeospatialCoverages().get(0).getBoundingCoordinates().getMax().getLatitude());
       assertEquals(
-          new Double("0.703"),
+          Double.valueOf("0.703"),
           eml.getGeospatialCoverages().get(0).getBoundingCoordinates().getMax().getLongitude());
       assertEquals(
-          new Double("-22.745"),
+          Double.valueOf("-22.745"),
           eml.getGeospatialCoverages().get(0).getBoundingCoordinates().getMin().getLatitude());
       assertEquals(
-          new Double("-1.564"),
+          Double.valueOf("-1.564"),
           eml.getGeospatialCoverages().get(0).getBoundingCoordinates().getMin().getLongitude());
       assertEquals("Bounding Box 2", eml.getGeospatialCoverages().get(1).getDescription());
       assertEquals(
-          new Double("43.975"),
+          Double.valueOf("43.975"),
           eml.getGeospatialCoverages().get(1).getBoundingCoordinates().getMax().getLatitude());
       assertEquals(
-          new Double("11.564"),
+          Double.valueOf("11.564"),
           eml.getGeospatialCoverages().get(1).getBoundingCoordinates().getMax().getLongitude());
       assertEquals(
-          new Double("-32.745"),
+          Double.valueOf("-32.745"),
           eml.getGeospatialCoverages().get(1).getBoundingCoordinates().getMin().getLatitude());
       assertEquals(
-          new Double("-10.703"),
+          Double.valueOf("-10.703"),
           eml.getGeospatialCoverages().get(1).getBoundingCoordinates().getMin().getLongitude());
 
       // temporal coverages tests
@@ -370,6 +370,17 @@ public class EmlFactoryTest {
           "Turkish Mountains", eml.getProject().getStudyAreaDescription().getDescriptorValue());
       assertEquals(
           "This was done in Avian Migration patterns", eml.getProject().getDesignDescription());
+      assertEquals(1, eml.getProject().getRelatedProjects().size());
+      assertEquals("Test related project", eml.getProject().getRelatedProjects().get(0).getTitle());
+      assertEquals("Test description for related project", eml.getProject().getRelatedProjects().get(0).getDescription());
+      assertEquals(1, eml.getProject().getRelatedProjects().get(0).getPersonnel().size());
+      assertEquals("Mr.", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getSalutation());
+      assertEquals("John", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getFirstName());
+      assertEquals("Doe", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getLastName());
+      assertEquals("ORIGINATOR", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getRole());
+      assertEquals(1, eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getUserIds().size());
+      assertEquals("http://orcid.org/", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getUserIds().get(0).getDirectory());
+      assertEquals("0000-0002-1234-5678", eml.getProject().getRelatedProjects().get(0).getPersonnel().get(0).getUserIds().get(0).getIdentifier());
       assertEquals("doi:tims-ident.2135.ex43.33.d", eml.getCitation().getIdentifier());
       assertEquals("Tims assembled checklist", eml.getCitation().getCitation());
       assertEquals("en", eml.getMetadataLanguage());
@@ -414,8 +425,8 @@ public class EmlFactoryTest {
       // is in sample2.xml
       assertNotNull(eml.getJgtiCuratorialUnits());
       assertEquals("jars", eml.getJgtiCuratorialUnits().get(0).getUnitType());
-      assertEquals(new Integer("500"), eml.getJgtiCuratorialUnits().get(0).getRangeStart());
-      assertEquals(new Integer("600"), eml.getJgtiCuratorialUnits().get(0).getRangeEnd());
+      assertEquals(Integer.valueOf(500), eml.getJgtiCuratorialUnits().get(0).getRangeStart());
+      assertEquals(Integer.valueOf(600), eml.getJgtiCuratorialUnits().get(0).getRangeEnd());
 
       assertFalse(eml.getSpecimenPreservationMethods().isEmpty());
       assertEquals("alcohol", eml.getSpecimenPreservationMethods().get(0));
@@ -426,7 +437,7 @@ public class EmlFactoryTest {
       assertEquals("Mammals", eml.getCollections().get(0).getCollectionName());
 
     } catch (Exception e) {
-      fail();
+      fail(e);
     }
   }
 }
