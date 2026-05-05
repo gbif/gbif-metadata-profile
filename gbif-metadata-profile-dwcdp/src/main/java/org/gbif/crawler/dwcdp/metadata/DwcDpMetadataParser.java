@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -392,8 +393,15 @@ public class DwcDpMetadataParser {
 
     for (DwcDpMetadata.Contributor contributor : metadata.getContributors()) {
       Contact contact = toContact(contributor);
-      if (contact != null) {
+      if (contact == null) {
+        continue;
+      }
+      Contact existingContact = findMatchingContact(dataset.getContacts(), contact);
+      if (existingContact == null) {
         dataset.getContacts().add(contact);
+      } else {
+        existingContact.setType(mergeContactType(existingContact.getType(), contact.getType()));
+        mergePositions(existingContact, contact);
       }
     }
     metadata.getSources().stream()
@@ -471,6 +479,10 @@ public class DwcDpMetadataParser {
     if (homepage != null) {
       contact.addHomepage(homepage);
     }
+    String role = trimToNull(contributor.getRole());
+    if (role != null) {
+      contact.addPosition(role);
+    }
     contact.setType(parseContactType(contributor.getRole()));
     if (trimToNull(contact.getLastName()) == null
         && trimToNull(contact.getOrganization()) == null
@@ -480,6 +492,56 @@ public class DwcDpMetadataParser {
       return null;
     }
     return contact;
+  }
+
+  private static Contact findMatchingContact(List<Contact> contacts, Contact candidate) {
+    for (Contact existing : contacts) {
+      if (isSamePerson(existing, candidate)) {
+        return existing;
+      }
+    }
+    return null;
+  }
+
+  private static boolean isSamePerson(Contact left, Contact right) {
+    return Objects.equals(trimToNull(left.getFirstName()), trimToNull(right.getFirstName()))
+        && Objects.equals(trimToNull(left.getLastName()), trimToNull(right.getLastName()))
+        && Objects.equals(trimToNull(left.getOrganization()), trimToNull(right.getOrganization()))
+        && Objects.equals(left.getEmail(), right.getEmail())
+        && Objects.equals(left.getHomepage(), right.getHomepage());
+  }
+
+  private static ContactType mergeContactType(ContactType existing, ContactType incoming) {
+    return contactTypeRank(incoming) < contactTypeRank(existing) ? incoming : existing;
+  }
+
+  private static void mergePositions(Contact existing, Contact incoming) {
+    for (String position : incoming.getPosition()) {
+      String normalized = trimToNull(position);
+      if (normalized != null && !existing.getPosition().contains(normalized)) {
+        existing.addPosition(normalized);
+      }
+    }
+  }
+
+  private static int contactTypeRank(ContactType type) {
+    if (type == null) {
+      return Integer.MAX_VALUE;
+    }
+    switch (type) {
+      case AUTHOR:
+        return 1;
+      case PUBLISHER:
+        return 2;
+      case POINT_OF_CONTACT:
+        return 3;
+      case METADATA_AUTHOR:
+        return 4;
+      case CONTENT_PROVIDER:
+        return 5;
+      default:
+        return 6;
+    }
   }
 
   private static Citation toBibliographicCitation(DwcDpMetadata.Source source) {

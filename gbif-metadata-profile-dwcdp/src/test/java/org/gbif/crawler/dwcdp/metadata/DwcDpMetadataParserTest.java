@@ -97,10 +97,12 @@ public class DwcDpMetadataParserTest {
     Contact author = dataset.getContacts().get(0);
     assertEquals("Jane Doe", author.getLastName());
     assertEquals(ContactType.AUTHOR, author.getType());
+    assertTrue(author.getPosition().contains("author"));
 
     Contact publisher = dataset.getContacts().get(1);
     assertEquals("GBIF", publisher.getLastName());
     assertEquals(ContactType.PUBLISHER, publisher.getType());
+    assertTrue(publisher.getPosition().contains("publisher"));
     assertEquals(2, dataset.getContacts().size());
 
     assertEquals(1, dataset.getBibliographicCitations().size());
@@ -144,6 +146,49 @@ public class DwcDpMetadataParserTest {
             .findFirst()
             .orElseThrow();
     assertEquals(IdentifierType.UNKNOWN, customId.getType());
+  }
+
+  @Test
+  public void duplicateContributorsProduceSingleContact() throws Exception {
+    String json =
+        "{"
+            + "\"contributors\":["
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"author\"},"
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"author\"}"
+            + "],"
+            + "\"resources\":[{\"name\":\"occurrence\",\"path\":\"occurrence.csv\"}]"
+            + "}";
+
+    Dataset dataset = DwcDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
+
+    assertEquals(1, dataset.getContacts().size());
+    Contact contact = dataset.getContacts().get(0);
+    assertEquals("Jane Doe", contact.getLastName());
+    assertEquals(ContactType.AUTHOR, contact.getType());
+    assertEquals(1, contact.getPosition().size());
+    assertTrue(contact.getPosition().contains("author"));
+  }
+
+  @Test
+  public void samePersonWithDifferentRolesProducesSingleContact() throws Exception {
+    String json =
+        "{"
+            + "\"contributors\":["
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"author\"},"
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"contributor\"}"
+            + "],"
+            + "\"resources\":[{\"name\":\"occurrence\",\"path\":\"occurrence.csv\"}]"
+            + "}";
+
+    Dataset dataset = DwcDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
+
+    assertEquals(1, dataset.getContacts().size());
+    Contact contact = dataset.getContacts().get(0);
+    assertEquals("Jane Doe", contact.getLastName());
+    assertEquals(ContactType.AUTHOR, contact.getType());
+    assertEquals(2, contact.getPosition().size());
+    assertTrue(contact.getPosition().contains("author"));
+    assertTrue(contact.getPosition().contains("contributor"));
   }
 
   @Test
