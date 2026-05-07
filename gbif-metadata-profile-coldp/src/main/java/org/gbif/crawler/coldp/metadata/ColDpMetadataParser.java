@@ -20,6 +20,7 @@ import org.gbif.api.model.registry.Dataset;
 import org.gbif.api.model.registry.Identifier;
 import org.gbif.api.model.registry.eml.TaxonomicCoverages;
 import org.gbif.api.model.registry.eml.temporal.VerbatimTimePeriod;
+import org.gbif.api.vocabulary.ContactType;
 import org.gbif.api.vocabulary.IdentifierType;
 import org.gbif.api.vocabulary.Language;
 import org.gbif.api.vocabulary.License;
@@ -34,14 +35,13 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -490,19 +490,12 @@ public class ColDpMetadataParser {
       dataset.getIdentifiers().add(identifier);
     }
 
-    Deque<ColDpMetadata.Agent> allAgents = new ArrayDeque<>();
-    allAgents.addAll(metadata.getContacts());
-    allAgents.addAll(metadata.getCreators());
-    allAgents.addAll(metadata.getEditors());
-    allAgents.addAll(metadata.getContributors());
+    addOrMergeContacts(dataset, metadata.getContacts(), ContactType.ADMINISTRATIVE_POINT_OF_CONTACT);
+    addOrMergeContacts(dataset, metadata.getCreators(), ContactType.ORIGINATOR);
+    addOrMergeContacts(dataset, metadata.getEditors(), ContactType.METADATA_AUTHOR);
+    addOrMergeContacts(dataset, metadata.getContributors(), ContactType.CONTENT_PROVIDER);
     if (metadata.getPublisher() != null) {
-      allAgents.add(metadata.getPublisher());
-    }
-    for (ColDpMetadata.Agent agent : allAgents) {
-      Contact contact = toContact(agent);
-      if (contact != null && !dataset.getContacts().contains(contact)) {
-        dataset.getContacts().add(contact);
-      }
+      addOrMergeContact(dataset, metadata.getPublisher(), ContactType.PUBLISHER);
     }
     metadata.getSources().stream()
         .map(ColDpMetadataParser::toBibliographicCitation)
@@ -519,7 +512,27 @@ public class ColDpMetadataParser {
     return dataset;
   }
 
-  private static Contact toContact(ColDpMetadata.Agent agent) {
+  private static void addOrMergeContacts(
+      Dataset dataset, List<ColDpMetadata.Agent> agents, ContactType type) {
+    for (ColDpMetadata.Agent agent : agents) {
+      addOrMergeContact(dataset, agent, type);
+    }
+  }
+
+  private static void addOrMergeContact(Dataset dataset, ColDpMetadata.Agent agent, ContactType type) {
+    Contact contact = toContact(agent, type);
+    if (contact == null) {
+      return;
+    }
+    Contact existingContact = findMatchingContact(dataset.getContacts(), contact);
+    if (existingContact == null) {
+      dataset.getContacts().add(contact);
+    } else {
+      mergePositions(existingContact, contact);
+    }
+  }
+
+  private static Contact toContact(ColDpMetadata.Agent agent, ContactType type) {
     if (agent == null) {
       return null;
     }
@@ -539,6 +552,7 @@ public class ColDpMetadataParser {
     if (orcid != null) {
       contact.addUserId(orcid);
     }
+    contact.setType(type);
     if (trimToNull(contact.getFirstName()) == null
         && trimToNull(contact.getLastName()) == null
         && trimToNull(contact.getOrganization()) == null
@@ -548,6 +562,34 @@ public class ColDpMetadataParser {
       return null;
     }
     return contact;
+  }
+
+  private static Contact findMatchingContact(List<Contact> contacts, Contact candidate) {
+    for (Contact existing : contacts) {
+      if (isSamePerson(existing, candidate)
+          && Objects.equals(existing.getType(), candidate.getType())) {
+        return existing;
+      }
+    }
+    return null;
+  }
+
+  private static boolean isSamePerson(Contact left, Contact right) {
+    return Objects.equals(trimToNull(left.getFirstName()), trimToNull(right.getFirstName()))
+        && Objects.equals(trimToNull(left.getLastName()), trimToNull(right.getLastName()))
+        && Objects.equals(trimToNull(left.getOrganization()), trimToNull(right.getOrganization()))
+        && Objects.equals(left.getEmail(), right.getEmail())
+        && Objects.equals(left.getHomepage(), right.getHomepage())
+        && Objects.equals(left.getUserId(), right.getUserId());
+  }
+
+  private static void mergePositions(Contact existing, Contact incoming) {
+    for (String position : incoming.getPosition()) {
+      String normalized = trimToNull(position);
+      if (normalized != null && !existing.getPosition().contains(normalized)) {
+        existing.addPosition(normalized);
+      }
+    }
   }
 
   private static Citation toBibliographicCitation(ColDpMetadata.Source source) {

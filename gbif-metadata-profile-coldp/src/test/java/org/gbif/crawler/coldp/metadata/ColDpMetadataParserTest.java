@@ -13,7 +13,9 @@
  */
 package org.gbif.crawler.coldp.metadata;
 
+import org.gbif.api.model.registry.Contact;
 import org.gbif.api.model.registry.Dataset;
+import org.gbif.api.vocabulary.ContactType;
 
 import java.nio.charset.StandardCharsets;
 
@@ -102,5 +104,32 @@ public class ColDpMetadataParserTest {
   public void citationCleaningRemovesDatasetSuffix() {
     String raw = "(n.d.). Example title [Data set]";
     assertEquals("Example title", ColDpCitationFormatter.customCleaning(raw));
+  }
+
+  @Test
+  public void samePersonWithDifferentAgentSectionsProducesSeparateContactTypes() throws Exception {
+    String json =
+        "{"
+            + "\"contact\":{\"given\":\"Jane\",\"family\":\"Doe\",\"email\":\"jane@example.org\"},"
+            + "\"creator\":{\"given\":\"Jane\",\"family\":\"Doe\",\"email\":\"jane@example.org\"}"
+            + "}";
+
+    Dataset dataset = ColDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
+
+    assertEquals(2, dataset.getContacts().size());
+    Contact administrative =
+        dataset.getContacts().stream()
+            .filter(c -> c.getType() == ContactType.ADMINISTRATIVE_POINT_OF_CONTACT)
+            .findFirst()
+            .orElseThrow();
+    Contact originator =
+        dataset.getContacts().stream()
+            .filter(c -> c.getType() == ContactType.ORIGINATOR)
+            .findFirst()
+            .orElseThrow();
+    assertEquals("Jane", administrative.getFirstName());
+    assertEquals("Doe", administrative.getLastName());
+    assertEquals("Jane", originator.getFirstName());
+    assertEquals("Doe", originator.getLastName());
   }
 }

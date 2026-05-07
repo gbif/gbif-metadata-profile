@@ -170,7 +170,50 @@ public class DwcDpMetadataParserTest {
   }
 
   @Test
-  public void samePersonWithDifferentRolesProducesSingleContact() throws Exception {
+  public void samePersonWithDifferentRolesSameTypeProducesSingleContact() throws Exception {
+    String json =
+        "{"
+            + "\"contributors\":["
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"contributor\"},"
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"curator\"}"
+            + "],"
+            + "\"resources\":[{\"name\":\"occurrence\",\"path\":\"occurrence.csv\"}]"
+            + "}";
+
+    Dataset dataset = DwcDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
+
+    assertEquals(1, dataset.getContacts().size());
+    Contact contact = dataset.getContacts().get(0);
+    assertEquals("Jane Doe", contact.getLastName());
+    assertEquals(ContactType.CONTENT_PROVIDER, contact.getType());
+    assertEquals(2, contact.getPosition().size());
+    assertTrue(contact.getPosition().contains("contributor"));
+    assertTrue(contact.getPosition().contains("curator"));
+  }
+
+  @Test
+  public void samePersonWithDifferentContactTypesProducesSeparateContacts() throws Exception {
+    String json =
+        "{"
+            + "\"contributors\":["
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"author\"},"
+            + "{\"title\":\"Jane Doe\",\"email\":\"jane@example.org\",\"path\":\"https://example.org/jane\",\"role\":\"publisher\"}"
+            + "],"
+            + "\"resources\":[{\"name\":\"occurrence\",\"path\":\"occurrence.csv\"}]"
+            + "}";
+
+    Dataset dataset = DwcDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
+
+    assertEquals(2, dataset.getContacts().size());
+    assertTrue(dataset.getContacts().stream().anyMatch(c -> c.getType() == ContactType.AUTHOR));
+    assertTrue(dataset.getContacts().stream().anyMatch(c -> c.getType() == ContactType.PUBLISHER));
+    assertTrue(
+        dataset.getContacts().stream()
+            .allMatch(c -> c.getPosition().size() == 1 && c.getPosition().get(0) != null));
+  }
+
+  @Test
+  public void samePersonWithDifferentRolesAndTypesProducesSeparateContacts() throws Exception {
     String json =
         "{"
             + "\"contributors\":["
@@ -182,13 +225,10 @@ public class DwcDpMetadataParserTest {
 
     Dataset dataset = DwcDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
 
-    assertEquals(1, dataset.getContacts().size());
-    Contact contact = dataset.getContacts().get(0);
-    assertEquals("Jane Doe", contact.getLastName());
-    assertEquals(ContactType.AUTHOR, contact.getType());
-    assertEquals(2, contact.getPosition().size());
-    assertTrue(contact.getPosition().contains("author"));
-    assertTrue(contact.getPosition().contains("contributor"));
+    assertEquals(2, dataset.getContacts().size());
+    assertTrue(dataset.getContacts().stream().anyMatch(c -> c.getType() == ContactType.AUTHOR));
+    assertTrue(
+        dataset.getContacts().stream().anyMatch(c -> c.getType() == ContactType.CONTENT_PROVIDER));
   }
 
   @Test

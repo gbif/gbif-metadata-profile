@@ -400,7 +400,6 @@ public class DwcDpMetadataParser {
       if (existingContact == null) {
         dataset.getContacts().add(contact);
       } else {
-        existingContact.setType(mergeContactType(existingContact.getType(), contact.getType()));
         mergePositions(existingContact, contact);
       }
     }
@@ -496,7 +495,8 @@ public class DwcDpMetadataParser {
 
   private static Contact findMatchingContact(List<Contact> contacts, Contact candidate) {
     for (Contact existing : contacts) {
-      if (isSamePerson(existing, candidate)) {
+      if (isSamePerson(existing, candidate)
+          && Objects.equals(existing.getType(), candidate.getType())) {
         return existing;
       }
     }
@@ -511,36 +511,12 @@ public class DwcDpMetadataParser {
         && Objects.equals(left.getHomepage(), right.getHomepage());
   }
 
-  private static ContactType mergeContactType(ContactType existing, ContactType incoming) {
-    return contactTypeRank(incoming) < contactTypeRank(existing) ? incoming : existing;
-  }
-
   private static void mergePositions(Contact existing, Contact incoming) {
     for (String position : incoming.getPosition()) {
       String normalized = trimToNull(position);
       if (normalized != null && !existing.getPosition().contains(normalized)) {
         existing.addPosition(normalized);
       }
-    }
-  }
-
-  private static int contactTypeRank(ContactType type) {
-    if (type == null) {
-      return Integer.MAX_VALUE;
-    }
-    switch (type) {
-      case AUTHOR:
-        return 1;
-      case PUBLISHER:
-        return 2;
-      case POINT_OF_CONTACT:
-        return 3;
-      case METADATA_AUTHOR:
-        return 4;
-      case CONTENT_PROVIDER:
-        return 5;
-      default:
-        return 6;
     }
   }
 
