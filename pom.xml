@@ -31,7 +31,7 @@
     <main.basedir>${project.basedir}</main.basedir>
 
     <gbif-api.version>2.1.18</gbif-api.version>
-    <gbif-common.version>0.60</gbif-common.version>
+    <gbif-common.version>1.0</gbif-common.version>
     <gbif-parsers.version>0.67</gbif-parsers.version>
 
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
