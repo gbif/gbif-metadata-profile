@@ -32,7 +32,7 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <gbif-api.version>2.4.5-SNAPSHOT</gbif-api.version>
+    <gbif-api.version>2.4.7</gbif-api.version>
     <gbif-common.version>0.60</gbif-common.version>
     <gbif-parsers.version>0.67</gbif-parsers.version>
 
