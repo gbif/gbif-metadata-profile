@@ -14,8 +14,8 @@
 package org.gbif.crawler.coldp.metadata;
 
 import org.gbif.api.model.common.DOI;
-import org.gbif.api.model.registry.Contact;
 import org.gbif.api.model.registry.Citation;
+import org.gbif.api.model.registry.Contact;
 import org.gbif.api.model.registry.Dataset;
 import org.gbif.api.model.registry.Identifier;
 import org.gbif.api.model.registry.eml.TaxonomicCoverages;
@@ -46,11 +46,12 @@ import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Parser for the current ColDP metadata shape with limited backward-compatible handling for agent
@@ -118,7 +119,8 @@ public class ColDpMetadataParser {
       }
     }
 
-    throw new IOException("No metadata.yaml or metadata.json found in " + archive.getAbsolutePath());
+    throw new IOException(
+        "No metadata.yaml or metadata.json found in " + archive.getAbsolutePath());
   }
 
   public ColDpMetadata parseYaml(InputStream inputStream) throws IOException {
@@ -490,7 +492,8 @@ public class ColDpMetadataParser {
       dataset.getIdentifiers().add(identifier);
     }
 
-    addOrMergeContacts(dataset, metadata.getContacts(), ContactType.ADMINISTRATIVE_POINT_OF_CONTACT);
+    addOrMergeContacts(
+        dataset, metadata.getContacts(), ContactType.ADMINISTRATIVE_POINT_OF_CONTACT);
     addOrMergeContacts(dataset, metadata.getCreators(), ContactType.ORIGINATOR);
     addOrMergeContacts(dataset, metadata.getEditors(), ContactType.METADATA_AUTHOR);
     addOrMergeContacts(dataset, metadata.getContributors(), ContactType.CONTENT_PROVIDER);
@@ -519,7 +522,8 @@ public class ColDpMetadataParser {
     }
   }
 
-  private static void addOrMergeContact(Dataset dataset, ColDpMetadata.Agent agent, ContactType type) {
+  private static void addOrMergeContact(
+      Dataset dataset, ColDpMetadata.Agent agent, ContactType type) {
     Contact contact = toContact(agent, type);
     if (contact == null) {
       return;

@@ -42,7 +42,8 @@ public class ColDpMetadataParserTest {
             + "\"publisher\":{\"organisation\":\"Catalogue of Life\",\"url\":\"https://www.catalogueoflife.org\"}"
             + "}";
 
-    ColDpMetadata metadata = ColDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
+    ColDpMetadata metadata =
+        ColDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
     Dataset dataset = ColDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
 
     assertEquals("Checklist A", metadata.getTitle());
@@ -90,7 +91,8 @@ public class ColDpMetadataParserTest {
             + "\"contributor\":{\"literal\":\"\"}"
             + "}";
 
-    ColDpMetadata metadata = ColDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
+    ColDpMetadata metadata =
+        ColDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
 
     assertEquals(2, metadata.getIdentifiers().size());
     assertEquals("doi:10.48580/dfg7", metadata.getIdentifiers().get(0).asString());
