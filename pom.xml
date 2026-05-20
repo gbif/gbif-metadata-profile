@@ -49,24 +49,6 @@
     <jsr305.version>3.0.2</jsr305.version>
     <jsoup.version>1.21.2</jsoup.version>
   </properties>
-  <dependencies>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.gbif</groupId>
-      <artifactId>gbif-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>de.undercouch</groupId>
-      <artifactId>citeproc-java</artifactId>
-    </dependency>
-  </dependencies>
   <scm>
     <connection>scm:git:git@github.com:gbif/${project.artifactId}.git</connection>
     <url>https://github.com/gbif/${project.artifactId}</url>
