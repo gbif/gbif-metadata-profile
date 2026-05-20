@@ -574,7 +574,8 @@ public class DwcDpMetadataParser {
         continue;
       }
       URI uri = toUri(licenseInfo.getPath());
-      String title = firstNotNull(trimToNull(licenseInfo.getTitle()), trimToNull(licenseInfo.getName()));
+      String title =
+          firstNotNull(trimToNull(licenseInfo.getTitle()), trimToNull(licenseInfo.getName()));
       License interpreted = licenseParser.parseUriThenTitle(uri, title);
       result = License.getMostRestrictive(result, interpreted, interpreted);
     }

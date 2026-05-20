@@ -58,7 +58,8 @@ public class DwcDpMetadataParserTest {
             + "\"resources\":[{\"name\":\"event\",\"path\":\"event.csv\"}]"
             + "}";
 
-    DwcDpMetadata metadata = DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
+    DwcDpMetadata metadata =
+        DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
     Dataset dataset = DwcDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
 
     assertEquals("dwcdp-demo", metadata.getName());
@@ -77,8 +78,10 @@ public class DwcDpMetadataParserTest {
     assertNotNull(dataset.getDoi());
     assertEquals(License.CC_BY_4_0, dataset.getLicense());
     assertFalse(dataset.getIdentifiers().isEmpty());
-    assertTrue(dataset.getIdentifiers().stream().allMatch(id -> id != null && id.getType() != null));
-    assertTrue(dataset.getIdentifiers().stream().anyMatch(id -> id.getType() == IdentifierType.DOI));
+    assertTrue(
+        dataset.getIdentifiers().stream().allMatch(id -> id != null && id.getType() != null));
+    assertTrue(
+        dataset.getIdentifiers().stream().anyMatch(id -> id.getType() == IdentifierType.DOI));
     assertFalse(
         dataset.getIdentifiers().stream()
             .anyMatch(
@@ -88,7 +91,11 @@ public class DwcDpMetadataParserTest {
                         && id.getIdentifier().startsWith("source:")));
     assertFalse(
         dataset.getIdentifiers().stream()
-            .anyMatch(id -> id != null && id.getIdentifier() != null && id.getIdentifier().startsWith("license:")));
+            .anyMatch(
+                id ->
+                    id != null
+                        && id.getIdentifier() != null
+                        && id.getIdentifier().startsWith("license:")));
 
     assertEquals(1, dataset.getKeywordCollections().size());
     assertEquals(2, dataset.getKeywordCollections().get(0).getKeywords().size());
@@ -121,7 +128,8 @@ public class DwcDpMetadataParserTest {
   public void parseMinimalDescriptorIsAccepted() throws Exception {
     String json = "{\"resources\":[{\"name\":\"occurrence\",\"path\":\"occurrence.csv\"}]}";
 
-    DwcDpMetadata metadata = DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
+    DwcDpMetadata metadata =
+        DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8));
     Dataset dataset = DwcDpMetadataParser.build(json.getBytes(StandardCharsets.UTF_8));
 
     assertNotNull(metadata);
@@ -236,13 +244,16 @@ public class DwcDpMetadataParserTest {
     String json = "{\"title\":\"invalid\"}";
     IOException exception =
         assertThrows(
-            IOException.class, () -> DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8)));
+            IOException.class,
+            () -> DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8)));
     assertTrue(exception.getMessage().contains("resources"));
   }
 
   @Test
   public void malformedJsonFailsValidation() {
     String json = "{title:}";
-    assertThrows(IOException.class, () -> DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8)));
+    assertThrows(
+        IOException.class,
+        () -> DwcDpMetadataParser.buildMetadata(json.getBytes(StandardCharsets.UTF_8)));
   }
 }

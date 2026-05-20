@@ -20,6 +20,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import de.undercouch.citeproc.CSL;
 import de.undercouch.citeproc.ItemDataProvider;
 import de.undercouch.citeproc.csl.CSLItemData;
@@ -27,8 +30,6 @@ import de.undercouch.citeproc.csl.CSLItemDataBuilder;
 import de.undercouch.citeproc.csl.CSLName;
 import de.undercouch.citeproc.csl.CSLNameBuilder;
 import de.undercouch.citeproc.csl.CSLType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ColDpCitationFormatter {
 
@@ -70,7 +71,8 @@ public class ColDpCitationFormatter {
   }
 
   static String customCleaning(String value) {
-    return MISSING_DATE_PREFIX.matcher(DATASET_SUFFIX.matcher(value).replaceAll(""))
+    return MISSING_DATE_PREFIX
+        .matcher(DATASET_SUFFIX.matcher(value).replaceAll(""))
         .replaceFirst("")
         .trim();
   }
