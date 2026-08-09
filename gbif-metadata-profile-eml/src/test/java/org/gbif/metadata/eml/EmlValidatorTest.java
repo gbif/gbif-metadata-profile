@@ -18,8 +18,16 @@ import javax.xml.transform.stream.StreamSource;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EmlValidatorTest {
+
+  @Test
+  public void testSchemaLocationsUseHttps() {
+    for (EMLProfileVersion version : EMLProfileVersion.values()) {
+      assertTrue(version.getSchemaLocation().startsWith("https://"));
+    }
+  }
 
   private StreamSource getEMLMetadataAsStreamSource(String filename) {
     return new StreamSource(getClass().getClassLoader().getResourceAsStream(filename));
