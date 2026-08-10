@@ -101,12 +101,18 @@ public class EmlValidator {
 
     @Override
     public LSInput resolveResource(
-        String type, String namespaceUri, String publicId, String systemId, String baseUri) {
+        String type,
+        String namespaceUri,
+        String publicId,
+        String systemId,
+        String baseUri) {
       if (systemId == null || !systemId.startsWith(GBIF_SCHEMA_HTTP)) {
         return null;
       }
       return new SchemaInput(
-          publicId, GBIF_SCHEMA_HTTPS + systemId.substring(GBIF_SCHEMA_HTTP.length()), baseUri);
+          publicId,
+          GBIF_SCHEMA_HTTPS + systemId.substring(GBIF_SCHEMA_HTTP.length()),
+          baseUri);
     }
   }
 
