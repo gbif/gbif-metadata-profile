@@ -15,7 +15,6 @@ package org.gbif.metadata.eml;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -24,8 +23,6 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 
-import org.w3c.dom.ls.LSInput;
-import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.SAXException;
 
 /** GBIF Metadata Profile schema validator utility. */
@@ -33,8 +30,6 @@ import org.xml.sax.SAXException;
 public class EmlValidator {
 
   private static final String SCHEMA_LANG = "http://www.w3.org/2001/XMLSchema";
-  private static final String GBIF_SCHEMA_HTTP = "http://rs.gbif.org/";
-  private static final String GBIF_SCHEMA_HTTPS = "https://rs.gbif.org/";
 
   private final Validator validator;
 
@@ -48,7 +43,6 @@ public class EmlValidator {
    */
   public static EmlValidator newValidator(EMLProfileVersion version) throws SAXException {
     SchemaFactory factory = SchemaFactory.newInstance(SCHEMA_LANG);
-    factory.setResourceResolver(new HttpsGbifSchemaResolver());
     Schema schema = factory.newSchema(new StreamSource(version.getSchemaLocation()));
     return new EmlValidator(schema.newValidator());
   }
@@ -95,106 +89,5 @@ public class EmlValidator {
 
   private StreamSource toSourceStream(String xmlAsString) {
     return new StreamSource(new ByteArrayInputStream(xmlAsString.getBytes(StandardCharsets.UTF_8)));
-  }
-
-  private static final class HttpsGbifSchemaResolver implements LSResourceResolver {
-
-    @Override
-    public LSInput resolveResource(
-        String type,
-        String namespaceUri,
-        String publicId,
-        String systemId,
-        String baseUri) {
-      if (systemId == null || !systemId.startsWith(GBIF_SCHEMA_HTTP)) {
-        return null;
-      }
-      return new SchemaInput(
-          publicId,
-          GBIF_SCHEMA_HTTPS + systemId.substring(GBIF_SCHEMA_HTTP.length()),
-          baseUri);
-    }
-  }
-
-  private static final class SchemaInput implements LSInput {
-    private String publicId;
-    private String systemId;
-    private String baseUri;
-
-    private SchemaInput(String publicId, String systemId, String baseUri) {
-      this.publicId = publicId;
-      this.systemId = systemId;
-      this.baseUri = baseUri;
-    }
-
-    @Override
-    public Reader getCharacterStream() {
-      return null;
-    }
-
-    @Override
-    public void setCharacterStream(Reader characterStream) {}
-
-    @Override
-    public InputStream getByteStream() {
-      return null;
-    }
-
-    @Override
-    public void setByteStream(InputStream byteStream) {}
-
-    @Override
-    public String getStringData() {
-      return null;
-    }
-
-    @Override
-    public void setStringData(String stringData) {}
-
-    @Override
-    public String getSystemId() {
-      return systemId;
-    }
-
-    @Override
-    public void setSystemId(String value) {
-      systemId = value;
-    }
-
-    @Override
-    public String getPublicId() {
-      return publicId;
-    }
-
-    @Override
-    public void setPublicId(String value) {
-      publicId = value;
-    }
-
-    @Override
-    public String getBaseURI() {
-      return baseUri;
-    }
-
-    @Override
-    public void setBaseURI(String value) {
-      baseUri = value;
-    }
-
-    @Override
-    public String getEncoding() {
-      return null;
-    }
-
-    @Override
-    public void setEncoding(String encoding) {}
-
-    @Override
-    public boolean getCertifiedText() {
-      return false;
-    }
-
-    @Override
-    public void setCertifiedText(boolean certifiedText) {}
   }
 }
