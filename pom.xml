@@ -41,7 +41,7 @@
     <commons-io.version>2.20.0</commons-io.version>
     <commons-lang.version>3.19.0</commons-lang.version>
     <citeproc-java.version>3.4.1</citeproc-java.version>
-    <citationstyles.version>26.2</citationstyles.version>
+    <citationstyles.version>26.8</citationstyles.version>
     <jackson.version>2.18.9</jackson.version>
     <freemarker.version>2.3.34</freemarker.version>
     <junit.version>5.14.4</junit.version>
