@@ -24,8 +24,10 @@ import org.gbif.metadata.eml.ipt.model.TaxonomicCoverage;
 import org.gbif.metadata.eml.ipt.model.UserId;
 import org.gbif.utils.file.FileUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Date;
 
@@ -40,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class EmlWriterTest {
@@ -569,5 +572,88 @@ public class EmlWriterTest {
     a.addUserId(userId);
 
     return a;
+  }
+
+  @Test
+  public void testTitleTranslationsAndLanguageSectionsRoundtrip() throws Exception {
+    Eml eml = EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml"));
+    eml.setMetadataLanguage("en");
+    eml.setTitle("Birds & bees");
+    eml.getTitleTranslations().put("es", "Aves y abejas");
+    eml.getTitleTranslations().put("fr", "Oiseaux et abeilles");
+    // empty translations are not written
+    eml.getTitleTranslations().put("de", "");
+    // nor a translation in the metadata language, which would duplicate the title
+    eml.getTitleTranslations().put("eng", "Duplicate");
+    String description =
+        "<section xml:lang=\"en\"><para>English</para><section><title>Methods</title><para>How</para></section></section>"
+            + "<section xml:lang=\"es\"><para>Español</para></section>";
+    eml.setDescription(description);
+
+    String xml = IptEmlWriter.writeEmlAsString(eml);
+    assertTrue(xml.contains("<title xml:lang=\"en\">Birds &amp; bees</title>"), xml);
+    assertTrue(xml.indexOf("xml:lang=\"en\">Birds") < xml.indexOf("xml:lang=\"es\">Aves"));
+    assertTrue(xml.contains("<title xml:lang=\"fr\">Oiseaux et abeilles</title>"));
+    assertFalse(xml.contains("xml:lang=\"de\""));
+    assertFalse(xml.contains("Duplicate"));
+
+    Eml eml2 = EmlFactory.build(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+    assertEquals("Birds & bees", eml2.getTitle());
+    assertEquals(2, eml2.getTitleTranslations().size());
+    assertEquals("Aves y abejas", eml2.getTitleTranslations().get("es"));
+    assertEquals("Oiseaux et abeilles", eml2.getTitleTranslations().get("fr"));
+    assertEquals(description, eml2.getDescription());
+  }
+
+  @Test
+  public void testTitleInMetadataLanguageIsChosen() throws Exception {
+    String xml = IptEmlWriter.writeEmlAsString(EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml")))
+        .replaceFirst("<title xml:lang=\"[^\"]*\">[^<]*</title>",
+            "<title xml:lang=\"en\">English title</title><title>No language</title><title xml:lang=\"spa\">Título</title>")
+        .replaceFirst("(<eml:eml[^>]*xml:lang=\")[^\"]*\"", "$1es\"");
+
+    Eml eml = EmlFactory.build(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+    assertEquals("es", eml.getMetadataLanguage());
+    // "spa" and "es" are the same language
+    assertEquals("Título", eml.getTitle());
+    // the sample also has a German title, which is kept
+    assertEquals(2, eml.getTitleTranslations().size());
+    assertEquals("English title", eml.getTitleTranslations().get("en"));
+    assertEquals("Entymologische Sammlung Tansania", eml.getTitleTranslations().get("de"));
+  }
+
+  @Test
+  public void testEmptyTitleInMetadataLanguageIsIgnored() throws Exception {
+    String xml = IptEmlWriter.writeEmlAsString(EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml")))
+        .replaceFirst("<title xml:lang=\"[^\"]*\">[^<]*</title>",
+            "<title xml:lang=\"es\"> </title><title xml:lang=\"en\">English title</title>")
+        .replaceFirst("(<eml:eml[^>]*xml:lang=\")[^\"]*\"", "$1es\"");
+
+    Eml eml = EmlFactory.build(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+    assertEquals("English title", eml.getTitle());
+    assertNull(eml.getTitleTranslations().get("en"));
+  }
+
+  @Test
+  public void testTranslationsNotWrittenWithoutTitle() throws Exception {
+    Eml eml = EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml"));
+    eml.setTitle(null);
+    eml.getTitleTranslations().put("es", "Aves y abejas");
+
+    String xml = IptEmlWriter.writeEmlAsString(eml);
+    assertFalse(xml.contains("Aves y abejas"));
+  }
+
+  @Test
+  public void testIsSameLanguage() {
+    assertTrue(Eml.isSameLanguage("en", "eng"));
+    assertTrue(Eml.isSameLanguage("fr", "fre"));
+    assertTrue(Eml.isSameLanguage("fra", "fre"));
+    assertTrue(Eml.isSameLanguage("de", "GER"));
+    assertTrue(Eml.isSameLanguage("pt-BR", "por-br"));
+    assertFalse(Eml.isSameLanguage("pt-BR", "pt-PT"));
+    assertFalse(Eml.isSameLanguage("pt", "pt-PT"));
+    assertFalse(Eml.isSameLanguage("en", "es"));
+    assertFalse(Eml.isSameLanguage("en", null));
   }
 }

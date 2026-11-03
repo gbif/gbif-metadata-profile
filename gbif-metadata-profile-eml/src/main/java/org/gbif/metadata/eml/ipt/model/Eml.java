@@ -22,7 +22,11 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
@@ -352,6 +356,17 @@ public class Eml implements Serializable {
   private String guid;
 
   private String title;
+
+  /**
+   * Translations of the title, by language (as written in xml:lang, e.g. "es"). The title itself is in the metadata
+   * language and is not repeated here.
+   */
+  private Map<String, String> titleTranslations = new LinkedHashMap<>();
+
+  /**
+   * Titles as read from an EML document (text, language), see {@link #resolveParsedTitles()}.
+   */
+  private transient List<String[]> parsedTitles;
 
   private String shortName;
 
@@ -907,6 +922,21 @@ public class Eml implements Serializable {
     this.title = title;
   }
 
+  public Map<String, String> getTitleTranslations() {
+    return titleTranslations;
+  }
+
+  public void setTitleTranslations(Map<String, String> titleTranslations) {
+    this.titleTranslations = titleTranslations == null ? new LinkedHashMap<>() : titleTranslations;
+  }
+
+  /**
+   * Whether the language is the one the main title is written in: the metadata language, or English if unset.
+   */
+  public boolean isTitleLanguage(String language) {
+    return isSameLanguage(language, StringUtils.defaultIfBlank(metadataLanguage, "en"));
+  }
+
   public String getShortName() {
     return shortName;
   }
@@ -1239,14 +1269,94 @@ public class Eml implements Serializable {
   }
 
   /**
-   * Sets the title also given the language. Used to support multiple translated titles in the eml source document
-   * while the Eml java classes still only support a single title, preferably in english. The setter will use the first
-   * title but prefer any english title over any other language.
+   * Records a title and its language, used when parsing an EML document with one or more titles. Empty titles are
+   * ignored. {@link #resolveParsedTitles()} must be called once the whole document has been read, to pick the title in
+   * the metadata language and keep the others as translations.
    */
   public void setTitle(String title, String language) {
-    if (this.title == null || "en".equalsIgnoreCase(language) || "eng".equalsIgnoreCase(language)) {
-      this.title = title;
+    if (StringUtils.isBlank(title)) {
+      return;
     }
+    if (parsedTitles == null) {
+      parsedTitles = new ArrayList<>();
+    }
+    parsedTitles.add(new String[] {title, language});
+  }
+
+  /**
+   * Called once an EML document has been parsed. The title in the metadata language (or else the English title, or
+   * else the first title) becomes the title; every other title with a language becomes a translation. Titles without
+   * a language, other than the one chosen, are dropped, as they can't be told apart.
+   */
+  public void resolveParsedTitles() {
+    if (parsedTitles == null || parsedTitles.isEmpty()) {
+      return;
+    }
+    int chosen = -1;
+    for (int i = 0; i < parsedTitles.size() && chosen < 0; i++) {
+      if (isSameLanguage(parsedTitles.get(i)[1], metadataLanguage)) {
+        chosen = i;
+      }
+    }
+    for (int i = 0; i < parsedTitles.size() && chosen < 0; i++) {
+      if (isSameLanguage(parsedTitles.get(i)[1], "en")) {
+        chosen = i;
+      }
+    }
+    if (chosen < 0) {
+      chosen = 0;
+    }
+
+    title = StringUtils.trimToNull(parsedTitles.get(chosen)[0]);
+    titleTranslations.clear();
+    for (int i = 0; i < parsedTitles.size(); i++) {
+      String text = StringUtils.trimToNull(parsedTitles.get(i)[0]);
+      String language = StringUtils.trimToNull(parsedTitles.get(i)[1]);
+      if (i != chosen && text != null && language != null && !isSameLanguage(language, metadataLanguage)) {
+        titleTranslations.putIfAbsent(language, text);
+      }
+    }
+    parsedTitles = null;
+  }
+
+  /**
+   * Whether two language codes name the same language, e.g. "en" and "eng". Codes that are not ISO 639 codes are
+   * compared as they are, ignoring case.
+   */
+  public static boolean isSameLanguage(String first, String second) {
+    if (StringUtils.isBlank(first) || StringUtils.isBlank(second)) {
+      return false;
+    }
+    if (first.trim().equalsIgnoreCase(second.trim())) {
+      return true;
+    }
+    // primary language, then any subtags (region etc.), which must match too: "pt-BR" is not "pt-PT"
+    String[] a = first.trim().replace('_', '-').split("-", 2);
+    String[] b = second.trim().replace('_', '-').split("-", 2);
+    String restA = a.length > 1 ? a[1] : "";
+    String restB = b.length > 1 ? b[1] : "";
+    if (!restA.equalsIgnoreCase(restB)) {
+      return false;
+    }
+    try {
+      return toIso3(a[0]).equalsIgnoreCase(toIso3(b[0]));
+    } catch (MissingResourceException e) {
+      return false;
+    }
+  }
+
+  // ISO 639-2 bibliographic codes that differ from the terminology codes Java uses, e.g. "fre" for "fra"
+  private static final Map<String, String> ISO_639_2_B_TO_T = Map.ofEntries(
+      Map.entry("alb", "sqi"), Map.entry("arm", "hye"), Map.entry("baq", "eus"), Map.entry("bur", "mya"),
+      Map.entry("chi", "zho"), Map.entry("cze", "ces"), Map.entry("dut", "nld"), Map.entry("fre", "fra"),
+      Map.entry("geo", "kat"), Map.entry("ger", "deu"), Map.entry("gre", "ell"), Map.entry("ice", "isl"),
+      Map.entry("mac", "mkd"), Map.entry("mao", "mri"), Map.entry("may", "msa"), Map.entry("per", "fas"),
+      Map.entry("rum", "ron"), Map.entry("slo", "slk"), Map.entry("tib", "bod"), Map.entry("wel", "cym"));
+
+  private static String toIso3(String code) {
+    String language = code.toLowerCase(Locale.ROOT);
+    String iso3 = ISO_639_2_B_TO_T.getOrDefault(language, language);
+    return new Locale(iso3).getISO3Language();
   }
 
   /**
@@ -1320,6 +1430,7 @@ public class Eml implements Serializable {
         && Objects.equals(link, eml.link)
         && Objects.equals(guid, eml.guid)
         && Objects.equals(title, eml.title)
+        && Objects.equals(titleTranslations, eml.titleTranslations)
         && Objects.equals(shortName, eml.shortName)
         && Objects.equals(studyExtent, eml.studyExtent)
         && Objects.equals(sampleDescription, eml.sampleDescription)
@@ -1370,6 +1481,7 @@ public class Eml implements Serializable {
         link,
         guid,
         title,
+        titleTranslations,
         shortName,
         studyExtent,
         sampleDescription,
@@ -1420,6 +1532,7 @@ public class Eml implements Serializable {
         .add("link='" + link + "'")
         .add("guid='" + guid + "'")
         .add("title='" + title + "'")
+        .add("titleTranslations=" + titleTranslations)
         .add("shortName='" + shortName + "'")
         .add("studyExtent='" + studyExtent + "'")
         .add("sampleDescription='" + sampleDescription + "'")

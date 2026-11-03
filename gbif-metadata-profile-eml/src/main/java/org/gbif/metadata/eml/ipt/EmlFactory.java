@@ -181,6 +181,8 @@ public class EmlFactory {
     } finally {
       xml.close();
     }
+    // the metadata language (the root element's xml:lang) is only known once the whole document has been read
+    eml.resolveParsedTitles();
 
     return eml;
   }
