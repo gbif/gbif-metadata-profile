@@ -1312,7 +1312,10 @@ public class Eml implements Serializable {
     for (int i = 0; i < parsedTitles.size(); i++) {
       String text = StringUtils.trimToNull(parsedTitles.get(i)[0]);
       String language = StringUtils.trimToNull(parsedTitles.get(i)[1]);
-      if (i != chosen && text != null && language != null && !isSameLanguage(language, metadataLanguage)) {
+      if (i != chosen
+          && text != null
+          && language != null
+          && !isSameLanguage(language, metadataLanguage)) {
         titleTranslations.putIfAbsent(language, text);
       }
     }
@@ -1330,7 +1333,8 @@ public class Eml implements Serializable {
     if (first.trim().equalsIgnoreCase(second.trim())) {
       return true;
     }
-    // primary language, then any subtags (region etc.), which must match too: "pt-BR" is not "pt-PT"
+    // primary language, then any subtags (region etc.), which must match too: "pt-BR" is not
+    // "pt-PT"
     String[] a = first.trim().replace('_', '-').split("-", 2);
     String[] b = second.trim().replace('_', '-').split("-", 2);
     String restA = a.length > 1 ? a[1] : "";
@@ -1345,13 +1349,30 @@ public class Eml implements Serializable {
     }
   }
 
-  // ISO 639-2 bibliographic codes that differ from the terminology codes Java uses, e.g. "fre" for "fra"
-  private static final Map<String, String> ISO_639_2_B_TO_T = Map.ofEntries(
-      Map.entry("alb", "sqi"), Map.entry("arm", "hye"), Map.entry("baq", "eus"), Map.entry("bur", "mya"),
-      Map.entry("chi", "zho"), Map.entry("cze", "ces"), Map.entry("dut", "nld"), Map.entry("fre", "fra"),
-      Map.entry("geo", "kat"), Map.entry("ger", "deu"), Map.entry("gre", "ell"), Map.entry("ice", "isl"),
-      Map.entry("mac", "mkd"), Map.entry("mao", "mri"), Map.entry("may", "msa"), Map.entry("per", "fas"),
-      Map.entry("rum", "ron"), Map.entry("slo", "slk"), Map.entry("tib", "bod"), Map.entry("wel", "cym"));
+  // ISO 639-2 bibliographic codes that differ from the terminology codes Java uses, e.g. "fre" for
+  // "fra"
+  private static final Map<String, String> ISO_639_2_B_TO_T =
+      Map.ofEntries(
+          Map.entry("alb", "sqi"),
+          Map.entry("arm", "hye"),
+          Map.entry("baq", "eus"),
+          Map.entry("bur", "mya"),
+          Map.entry("chi", "zho"),
+          Map.entry("cze", "ces"),
+          Map.entry("dut", "nld"),
+          Map.entry("fre", "fra"),
+          Map.entry("geo", "kat"),
+          Map.entry("ger", "deu"),
+          Map.entry("gre", "ell"),
+          Map.entry("ice", "isl"),
+          Map.entry("mac", "mkd"),
+          Map.entry("mao", "mri"),
+          Map.entry("may", "msa"),
+          Map.entry("per", "fas"),
+          Map.entry("rum", "ron"),
+          Map.entry("slo", "slk"),
+          Map.entry("tib", "bod"),
+          Map.entry("wel", "cym"));
 
   private static String toIso3(String code) {
     String language = code.toLowerCase(Locale.ROOT);

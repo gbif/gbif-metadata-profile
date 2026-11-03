@@ -607,10 +607,13 @@ public class EmlWriterTest {
 
   @Test
   public void testTitleInMetadataLanguageIsChosen() throws Exception {
-    String xml = IptEmlWriter.writeEmlAsString(EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml")))
-        .replaceFirst("<title xml:lang=\"[^\"]*\">[^<]*</title>",
-            "<title xml:lang=\"en\">English title</title><title>No language</title><title xml:lang=\"spa\">Título</title>")
-        .replaceFirst("(<eml:eml[^>]*xml:lang=\")[^\"]*\"", "$1es\"");
+    String xml =
+        IptEmlWriter.writeEmlAsString(
+                EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml")))
+            .replaceFirst(
+                "<title xml:lang=\"[^\"]*\">[^<]*</title>",
+                "<title xml:lang=\"en\">English title</title><title>No language</title><title xml:lang=\"spa\">Título</title>")
+            .replaceFirst("(<eml:eml[^>]*xml:lang=\")[^\"]*\"", "$1es\"");
 
     Eml eml = EmlFactory.build(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
     assertEquals("es", eml.getMetadataLanguage());
@@ -624,10 +627,13 @@ public class EmlWriterTest {
 
   @Test
   public void testEmptyTitleInMetadataLanguageIsIgnored() throws Exception {
-    String xml = IptEmlWriter.writeEmlAsString(EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml")))
-        .replaceFirst("<title xml:lang=\"[^\"]*\">[^<]*</title>",
-            "<title xml:lang=\"es\"> </title><title xml:lang=\"en\">English title</title>")
-        .replaceFirst("(<eml:eml[^>]*xml:lang=\")[^\"]*\"", "$1es\"");
+    String xml =
+        IptEmlWriter.writeEmlAsString(
+                EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml")))
+            .replaceFirst(
+                "<title xml:lang=\"[^\"]*\">[^<]*</title>",
+                "<title xml:lang=\"es\"> </title><title xml:lang=\"en\">English title</title>")
+            .replaceFirst("(<eml:eml[^>]*xml:lang=\")[^\"]*\"", "$1es\"");
 
     Eml eml = EmlFactory.build(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
     assertEquals("English title", eml.getTitle());
