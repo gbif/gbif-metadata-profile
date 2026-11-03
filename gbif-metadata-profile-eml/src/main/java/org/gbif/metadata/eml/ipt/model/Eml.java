@@ -1285,8 +1285,8 @@ public class Eml implements Serializable {
 
   /**
    * Called once an EML document has been parsed. The title in the metadata language (or else the English title, or
-   * else the first title) becomes the title; every other title with a language becomes a translation. Titles without
-   * a language, other than the one chosen, are dropped, as they can't be told apart.
+   * else the first title) becomes the title; every other title with a language becomes a translation. Empty titles
+   * are passed over. Titles without a language, other than the one chosen, are dropped, as they can't be told apart.
    */
   public void resolveParsedTitles() {
     if (parsedTitles == null || parsedTitles.isEmpty()) {
@@ -1294,12 +1294,17 @@ public class Eml implements Serializable {
     }
     int chosen = -1;
     for (int i = 0; i < parsedTitles.size() && chosen < 0; i++) {
-      if (isSameLanguage(parsedTitles.get(i)[1], metadataLanguage)) {
+      if (StringUtils.isNotBlank(parsedTitles.get(i)[0]) && isSameLanguage(parsedTitles.get(i)[1], metadataLanguage)) {
         chosen = i;
       }
     }
     for (int i = 0; i < parsedTitles.size() && chosen < 0; i++) {
-      if (isSameLanguage(parsedTitles.get(i)[1], "en")) {
+      if (StringUtils.isNotBlank(parsedTitles.get(i)[0]) && isSameLanguage(parsedTitles.get(i)[1], "en")) {
+        chosen = i;
+      }
+    }
+    for (int i = 0; i < parsedTitles.size() && chosen < 0; i++) {
+      if (StringUtils.isNotBlank(parsedTitles.get(i)[0])) {
         chosen = i;
       }
     }

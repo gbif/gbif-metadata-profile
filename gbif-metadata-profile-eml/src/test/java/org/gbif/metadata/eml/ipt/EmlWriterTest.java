@@ -651,6 +651,18 @@ public class EmlWriterTest {
   }
 
   @Test
+  public void testEmptyTitleInMetadataLanguageIsPassedOver() throws Exception {
+    String xml = IptEmlWriter.writeEmlAsString(EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml")))
+        .replaceFirst("<title xml:lang=\"[^\"]*\">[^<]*</title>",
+            "<title xml:lang=\"en\"></title><title xml:lang=\"es\">Título</title>")
+        .replaceFirst("(<eml:eml[^>]*xml:lang=\")[^\"]*\"", "$1en\"");
+
+    Eml eml = EmlFactory.build(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+    assertEquals("Título", eml.getTitle());
+    assertNull(eml.getTitleTranslations().get("es"));
+  }
+
+  @Test
   public void testIsSameLanguage() {
     assertTrue(Eml.isSameLanguage("en", "eng"));
     assertTrue(Eml.isSameLanguage("fr", "fre"));
