@@ -21,6 +21,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -145,11 +147,17 @@ public class Eml implements Serializable {
   private List<String> alternateIdentifiers = new ArrayList<>();
 
   /**
-   * The 'associatedParty' element provides the full name of other people, organizations, or positions who should be
-   * associated with the resource. These parties might play various roles in the creation or maintenance of the
-   * resource, and these roles should be indicated in the "role" element.
+   * Everyone involved in the resource, each person, organisation or position once, with all its roles: EML creator,
+   * contact, metadataProvider and associatedParty (with its role). The per-role lists ({@link #getCreators()},
+   * {@link #getContacts()}, {@link #getMetadataProviders()}, {@link #getAssociatedParties()}) are read-only views of
+   * this list, in its order. Project personnel are kept on the {@link Project}.
+   *
+   * @see <a href="https://eml.ecoinformatics.org/schema/eml-resource_xsd.html#ResourceGroup_creator">EML Resource creator</a>
+   * @see <a href="https://eml.ecoinformatics.org/schema/eml-resource_xsd.html#ResourceGroup_metadataProvider">EML Resource metadataProvider</a>
+   * @see <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_contact">EML Dataset contact</a>
+   * @see <a href="https://eml.ecoinformatics.org/schema/eml-resource_xsd.html#ResourceGroup_associatedParty">EML Resource associatedParty</a>
    */
-  private List<Agent> associatedParties = new ArrayList<>();
+  private List<Party> parties = new ArrayList<>();
 
   private BibliographicCitationSet bibliographicCitationSet = new BibliographicCitationSet();
 
@@ -302,30 +310,6 @@ public class Eml implements Serializable {
   private MaintenanceUpdateFrequency updateFrequency = MaintenanceUpdateFrequency.UNKNOWN;
 
   /**
-   * The 'creator' element provides the full name of the person, organization, or position who created the resource.
-   * The list of creators for a resource represent the people and organizations who should be cited for the resource.
-   *
-   * @see <a href="https://eml.ecoinformatics.org/schema/eml-resource_xsd.html#ResourceGroup_creator">EML Resource creator</a>
-   */
-  private List<Agent> creators = new ArrayList<>();
-
-  /**
-   * The 'metadataProvider' element provides the full name of the person, organization, or position who created
-   * documentation for the resource.
-   *
-   * @see <a href="https://eml.ecoinformatics.org/schema/eml-resource_xsd.html#ResourceGroup_metadataProvider">EML Resource metadataProvider</a>
-   */
-  private List<Agent> metadataProviders = new ArrayList<>();
-
-  /**
-   * The 'contact' field contains contact information for this dataset. This is the person or institution to contact
-   * with questions about the use, interpretation of a data set.
-   *
-   * @see <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_contact">EML Dataset contact</a>
-   */
-  private List<Agent> contacts = new ArrayList<>();
-
-  /**
    * @see <a href="https://eml.ecoinformatics.org/schema/eml-dataset_xsd.html#DatasetType_publisher">EML Dataset publisher</a>
    */
   private String publisherId;
@@ -436,12 +420,15 @@ public class Eml implements Serializable {
     this.alternateIdentifiers = alternateIdentifiers;
   }
 
+  /**
+   * The 'associatedParty' elements: other people, organizations, or positions associated with the resource, each
+   * with its role. A party with several roles is listed once per role.
+   *
+   * @return read-only list of copies, one per role, each with its role set; edits to them are lost, change the
+   *     parties instead
+   */
   public List<Agent> getAssociatedParties() {
-    return associatedParties;
-  }
-
-  public void setAssociatedParties(List<Agent> associatedParties) {
-    this.associatedParties = associatedParties;
+    return Collections.unmodifiableList(Party.associatedParties(parties));
   }
 
   public BibliographicCitationSet getBibliographicCitationSet() {
@@ -467,13 +454,7 @@ public class Eml implements Serializable {
    * @return the creator, or null if no creators or contacts exist
    */
   private Agent getCreator() {
-    if (!creators.isEmpty()) {
-      return creators.get(0);
-    }
-    if (!contacts.isEmpty()) {
-      return contacts.get(0);
-    }
-    return null;
+    return firstWithRole(Party::isCreator, Party::isContact);
   }
 
   /**
@@ -483,11 +464,20 @@ public class Eml implements Serializable {
    * @return the metadataProvider, or null if no metadataProviders or contacts exist
    */
   private Agent getPublisher() {
-    if (!metadataProviders.isEmpty()) {
-      return metadataProviders.get(0);
-    }
-    if (!contacts.isEmpty()) {
-      return contacts.get(0);
+    return firstWithRole(Party::isMetadataProvider, Party::isContact);
+  }
+
+  /**
+   * @return the agent of the first party with the preferred role, else of the first party with the fallback role,
+   *     else null
+   */
+  private Agent firstWithRole(Predicate<Party> preferred, Predicate<Party> fallback) {
+    for (Predicate<Party> role : List.of(preferred, fallback)) {
+      for (Party party : parties) {
+        if (party.getAgent() != null && role.test(party)) {
+          return party.getAgent();
+        }
+      }
     }
     return null;
   }
@@ -826,28 +816,57 @@ public class Eml implements Serializable {
     this.updateFrequency = MaintenanceUpdateFrequency.findByIdentifier(updateFrequency);
   }
 
+  /**
+   * The 'creator' elements: the people and organizations who created the resource and should be cited for it, in
+   * author order.
+   *
+   * @return read-only list of the agents of the creator parties (edits to an agent change the party)
+   */
   public List<Agent> getCreators() {
-    return creators;
+    return agentsOf(Party::isCreator);
   }
 
-  public void setCreators(List<Agent> creators) {
-    this.creators = creators;
-  }
-
+  /**
+   * The 'metadataProvider' elements: who created the documentation for the resource.
+   *
+   * @return read-only list of the agents of the metadata provider parties (edits to an agent change the party)
+   */
   public List<Agent> getMetadataProviders() {
-    return metadataProviders;
+    return agentsOf(Party::isMetadataProvider);
   }
 
-  public void setMetadataProviders(List<Agent> metadataProviders) {
-    this.metadataProviders = metadataProviders;
-  }
-
+  /**
+   * The 'contact' elements: who to contact with questions about the use or interpretation of the resource. The first
+   * is the primary contact.
+   *
+   * @return read-only list of the agents of the contact parties (edits to an agent change the party)
+   */
   public List<Agent> getContacts() {
-    return contacts;
+    return agentsOf(Party::isContact);
   }
 
-  public void setContacts(List<Agent> contacts) {
-    this.contacts = contacts;
+  private List<Agent> agentsOf(Predicate<Party> role) {
+    List<Agent> agents = new ArrayList<>();
+    for (Party party : parties) {
+      if (party.getAgent() != null && role.test(party)) {
+        agents.add(party.getAgent());
+      }
+    }
+    return Collections.unmodifiableList(agents);
+  }
+
+  /**
+   * @return everyone involved in the resource with their roles; the stored list, safe to edit
+   */
+  public List<Party> getParties() {
+    return parties;
+  }
+
+  /**
+   * @param parties everyone involved in the resource with their roles; null means none
+   */
+  public void setParties(List<Party> parties) {
+    this.parties = parties == null ? new ArrayList<>() : parties;
   }
 
   public String getPublisherId() {
@@ -1021,46 +1040,58 @@ public class Eml implements Serializable {
   }
 
   /**
-   * Utility to add an agent to the creators list. This method was introduced to ease the Digester rules for parsing of
-   * EML.
+   * Makes the agent a creator: the existing party with the same contact information gets the role, otherwise a new
+   * party holding this agent (not a copy) is appended and the agent's own role is cleared, as roles are held by the
+   * party. When an existing party is found, the given agent is not stored. Creator order follows party order.
    *
    * @param agent to add
    */
   public void addCreator(Agent agent) {
-    creators.add(agent);
+    findOrAddParty(agent).setCreator(true);
   }
 
   /**
-   * Utility to add an agent to the metadataProviders list. This method was introduced to ease the Digester rules for
-   * parsing of EML.
+   * Makes the agent a metadata provider, see {@link #addCreator(Agent)}.
    *
    * @param agent to add
    */
   public void addMetadataProvider(Agent agent) {
-    metadataProviders.add(agent);
+    findOrAddParty(agent).setMetadataProvider(true);
   }
 
   /**
-   * Utility to add an agent to the contacts list. This method was introduced to ease the Digester rules for parsing of
-   * EML.
+   * Makes the agent a contact, see {@link #addCreator(Agent)}.
    *
    * @param agent to add
    */
   public void addContact(Agent agent) {
-    contacts.add(agent);
+    findOrAddParty(agent).setContact(true);
   }
 
   /**
-   * Utility to add an Agent to the associatedParties list. This method was introduced to ease the Digester rules for
-   * parsing of EML.
+   * Adds the agent's role (default {@link Party#DEFAULT_ASSOCIATED_PARTY_ROLE}) as an associated party role, see
+   * {@link #addCreator(Agent)}.
    *
    * @param agent to add
    */
   public void addAssociatedParty(Agent agent) {
-    if (agent.getRole() == null) {
-      agent.setRole("AssociatedParty");
+    // read before findOrAddParty, which clears the role of a newly stored agent
+    String role = Party.roleOrDefault(agent.getRole());
+    findOrAddParty(agent).addAssociatedPartyRole(role);
+  }
+
+  private Party findOrAddParty(Agent agent) {
+    for (Party party : parties) {
+      if (party.getAgent() != null && party.getAgent().isSameParty(agent)) {
+        return party;
+      }
     }
-    associatedParties.add(agent);
+    // the agent itself is stored, so later changes to it show in the EML; roles are held by the party, so the
+    // agent's own role is cleared (the per-role views return this agent)
+    agent.setRole(null);
+    Party party = new Party(agent);
+    parties.add(party);
+    return party;
   }
 
   /**
@@ -1421,7 +1452,7 @@ public class Eml implements Serializable {
         && Objects.equals(description, eml.description)
         && Objects.equals(additionalInfo, eml.additionalInfo)
         && Objects.equals(alternateIdentifiers, eml.alternateIdentifiers)
-        && Objects.equals(associatedParties, eml.associatedParties)
+        && Objects.equals(parties, eml.parties)
         && Objects.equals(bibliographicCitationSet, eml.bibliographicCitationSet)
         && Objects.equals(citation, eml.citation)
         && Objects.equals(dateStamp, eml.dateStamp)
@@ -1445,9 +1476,6 @@ public class Eml implements Serializable {
         && Objects.equals(purpose, eml.purpose)
         && Objects.equals(updateFrequencyDescription, eml.updateFrequencyDescription)
         && updateFrequency == eml.updateFrequency
-        && Objects.equals(creators, eml.creators)
-        && Objects.equals(metadataProviders, eml.metadataProviders)
-        && Objects.equals(contacts, eml.contacts)
         && Objects.equals(publisherId, eml.publisherId)
         && Objects.equals(publisherOrganizationName, eml.publisherOrganizationName)
         && Objects.equals(specimenPreservationMethods, eml.specimenPreservationMethods)
@@ -1470,7 +1498,7 @@ public class Eml implements Serializable {
         description,
         additionalInfo,
         alternateIdentifiers,
-        associatedParties,
+        parties,
         bibliographicCitationSet,
         citation,
         dateStamp,
@@ -1496,9 +1524,6 @@ public class Eml implements Serializable {
         purpose,
         updateFrequencyDescription,
         updateFrequency,
-        creators,
-        metadataProviders,
-        contacts,
         publisherId,
         publisherOrganizationName,
         specimenPreservationMethods,
@@ -1521,7 +1546,7 @@ public class Eml implements Serializable {
         .add("description=" + description)
         .add("additionalInfo='" + additionalInfo + "'")
         .add("alternateIdentifiers=" + alternateIdentifiers)
-        .add("associatedParties=" + associatedParties)
+        .add("parties=" + parties)
         .add("bibliographicCitationSet=" + bibliographicCitationSet)
         .add("citation=" + citation)
         .add("dateStamp=" + dateStamp)
@@ -1547,9 +1572,6 @@ public class Eml implements Serializable {
         .add("purpose='" + purpose + "'")
         .add("updateFrequencyDescription='" + updateFrequencyDescription + "'")
         .add("updateFrequency=" + updateFrequency)
-        .add("creators=" + creators)
-        .add("metadataProviders=" + metadataProviders)
-        .add("contacts=" + contacts)
         .add("publisherId='" + publisherId + "'")
         .add("publisherOrganizationName='" + publisherOrganizationName + "'")
         .add("specimenPreservationMethods=" + specimenPreservationMethods)

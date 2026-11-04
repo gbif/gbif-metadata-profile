@@ -487,7 +487,7 @@ public class EmlWriterTest {
       // use ampersand values
       Agent gbif = new Agent();
       gbif.setOrganisation("GBIF & EOL");
-      eml.getContacts().add(gbif);
+      eml.addContact(gbif);
       eml.setTitle("The <very> important \"resources\" & other things");
 
       // write EML

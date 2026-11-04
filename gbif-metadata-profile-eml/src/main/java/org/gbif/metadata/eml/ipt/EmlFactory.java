@@ -22,6 +22,7 @@ import org.gbif.metadata.eml.ipt.model.Eml;
 import org.gbif.metadata.eml.ipt.model.GeospatialCoverage;
 import org.gbif.metadata.eml.ipt.model.JGTICuratorialUnit;
 import org.gbif.metadata.eml.ipt.model.KeywordSet;
+import org.gbif.metadata.eml.ipt.model.Party;
 import org.gbif.metadata.eml.ipt.model.PhysicalData;
 import org.gbif.metadata.eml.ipt.model.Project;
 import org.gbif.metadata.eml.ipt.model.ProjectAward;
@@ -34,6 +35,8 @@ import org.gbif.metadata.eml.ipt.model.UserId;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -77,6 +80,10 @@ public class EmlFactory {
       throws IOException, SAXException, ParserConfigurationException {
     Digester digester = new Digester();
     digester.setNamespaceAware(true);
+
+    // the agents of each dataset role are collected in the root object and merged into parties after parsing
+    ParsedAgents parsedAgents = new ParsedAgents();
+    digester.push(parsedAgents);
 
     // push the EML object onto the stack
     Eml eml = new Eml();
@@ -159,10 +166,10 @@ public class EmlFactory {
     digester.addCallParam("eml/dataset/publisher/", 0, "id");
     digester.addCallParam("eml/dataset/publisher/organizationName", 1);
 
-    addAgentRules(digester, "eml/dataset/creator", "addCreator");
-    addAgentRules(digester, "eml/dataset/metadataProvider", "addMetadataProvider");
-    addAgentRules(digester, "eml/dataset/contact", "addContact");
-    addAgentRules(digester, "eml/dataset/associatedParty", "addAssociatedParty");
+    addRootAgentRules(digester, "eml/dataset/creator", "addCreator");
+    addRootAgentRules(digester, "eml/dataset/metadataProvider", "addMetadataProvider");
+    addRootAgentRules(digester, "eml/dataset/contact", "addContact");
+    addRootAgentRules(digester, "eml/dataset/associatedParty", "addAssociatedParty");
     addKeywordRules(digester);
     addBibliographicCitations(digester);
     addGeographicCoverageRules(digester);
@@ -184,6 +191,13 @@ public class EmlFactory {
     // the metadata language (the root element's xml:lang) is only known once the whole document has
     // been read
     eml.resolveParsedTitles();
+    // one party per person, with all their roles, keeping author order and the primary contact
+    eml.setParties(
+        Party.merge(
+            parsedAgents.creators,
+            parsedAgents.contacts,
+            parsedAgents.metadataProviders,
+            parsedAgents.associatedParties));
 
     return eml;
   }
@@ -197,6 +211,27 @@ public class EmlFactory {
    * @param parentMethod Of the previous stack object to call and add the Agent to
    */
   private static void addAgentRules(Digester digester, String prefix, String parentMethod) {
+    addAgentObjectRules(digester, prefix);
+    digester.addSetNext(
+        prefix, parentMethod); // method called on parent object which is the previous stack object
+  }
+
+  /**
+   * Like {@link #addAgentRules}, but adds the Agent to the root object, the {@link ParsedAgents} collector.
+   *
+   * @param digester     to add the rules to
+   * @param prefix       The XPath prefix to prepend for extracting the Agent information
+   * @param rootMethod   Of the {@link ParsedAgents} root object to call and add the Agent to
+   */
+  private static void addRootAgentRules(Digester digester, String prefix, String rootMethod) {
+    addAgentObjectRules(digester, prefix);
+    digester.addSetRoot(prefix, rootMethod);
+  }
+
+  /**
+   * Rules to create an Agent with its Address and userIds; the caller adds the rule that hands it on.
+   */
+  private static void addAgentObjectRules(Digester digester, String prefix) {
     digester.addObjectCreate(prefix, Agent.class);
     digester.addBeanPropertySetter(prefix + "/individualName/salutation", "salutation");
     digester.addBeanPropertySetter(prefix + "/individualName/givenName", "firstName");
@@ -229,9 +264,34 @@ public class EmlFactory {
     digester.addBeanPropertySetter(prefix + "/userId", "identifier");
     digester.addSetNext(
         prefix + "/userId", "addUserId"); // called on </userId> to set on parent Agent
+  }
 
-    digester.addSetNext(
-        prefix, parentMethod); // method called on parent object which is the previous stack object
+  /**
+   * Root object of the parse: collects the dataset agents per role, in document order, so they can be merged into
+   * parties once the whole document has been read. Internal: public only for the Digester, not meant to be used
+   * elsewhere.
+   */
+  public static final class ParsedAgents {
+    private final List<Agent> creators = new ArrayList<>();
+    private final List<Agent> contacts = new ArrayList<>();
+    private final List<Agent> metadataProviders = new ArrayList<>();
+    private final List<Agent> associatedParties = new ArrayList<>();
+
+    public void addCreator(Agent agent) {
+      creators.add(agent);
+    }
+
+    public void addContact(Agent agent) {
+      contacts.add(agent);
+    }
+
+    public void addMetadataProvider(Agent agent) {
+      metadataProviders.add(agent);
+    }
+
+    public void addAssociatedParty(Agent agent) {
+      associatedParties.add(agent);
+    }
   }
 
   /**
