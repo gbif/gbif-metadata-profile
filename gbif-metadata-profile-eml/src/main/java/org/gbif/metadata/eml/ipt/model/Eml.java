@@ -1086,7 +1086,8 @@ public class Eml implements Serializable {
         return party;
       }
     }
-    // the agent itself is stored, so later changes to it show in the EML; roles are held by the party, so the
+    // the agent itself is stored, so later changes to it show in the EML; roles are held by the
+    // party, so the
     // agent's own role is cleared (the per-role views return this agent)
     agent.setRole(null);
     Party party = new Party(agent);
@@ -1325,12 +1326,14 @@ public class Eml implements Serializable {
     }
     int chosen = -1;
     for (int i = 0; i < parsedTitles.size() && chosen < 0; i++) {
-      if (StringUtils.isNotBlank(parsedTitles.get(i)[0]) && isSameLanguage(parsedTitles.get(i)[1], metadataLanguage)) {
+      if (StringUtils.isNotBlank(parsedTitles.get(i)[0])
+          && isSameLanguage(parsedTitles.get(i)[1], metadataLanguage)) {
         chosen = i;
       }
     }
     for (int i = 0; i < parsedTitles.size() && chosen < 0; i++) {
-      if (StringUtils.isNotBlank(parsedTitles.get(i)[0]) && isSameLanguage(parsedTitles.get(i)[1], "en")) {
+      if (StringUtils.isNotBlank(parsedTitles.get(i)[0])
+          && isSameLanguage(parsedTitles.get(i)[1], "en")) {
         chosen = i;
       }
     }

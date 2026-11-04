@@ -87,15 +87,28 @@ public class PartyTest {
 
   /** EML agent element, as written by the IPT. */
   private static String xml(String element, String given, String sur, String email, String role) {
-    return "<" + element + "><individualName><givenName>" + given + "</givenName><surName>" + sur
-        + "</surName></individualName><electronicMailAddress>" + email + "</electronicMailAddress>"
-        + (role == null ? "" : "<role>" + role + "</role>") + "</" + element + ">";
+    return "<"
+        + element
+        + "><individualName><givenName>"
+        + given
+        + "</givenName><surName>"
+        + sur
+        + "</surName></individualName><electronicMailAddress>"
+        + email
+        + "</electronicMailAddress>"
+        + (role == null ? "" : "<role>" + role + "</role>")
+        + "</"
+        + element
+        + ">";
   }
 
   private static Eml parse(String... agentElements) throws Exception {
-    String doc = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        + "<eml:eml xmlns:eml=\"https://eml.ecoinformatics.org/eml-2.2.0\" packageId=\"test\" system=\"http://gbif.org\">"
-        + "<dataset><title>Test</title>" + String.join("", agentElements) + "</dataset></eml:eml>";
+    String doc =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<eml:eml xmlns:eml=\"https://eml.ecoinformatics.org/eml-2.2.0\" packageId=\"test\" system=\"http://gbif.org\">"
+            + "<dataset><title>Test</title>"
+            + String.join("", agentElements)
+            + "</dataset></eml:eml>";
     try (InputStream in = new ByteArrayInputStream(doc.getBytes(StandardCharsets.UTF_8))) {
       return EmlFactory.build(in);
     }
@@ -105,11 +118,12 @@ public class PartyTest {
 
   @Test
   public void testParseSamePersonInEveryRoleIsOneParty() throws Exception {
-    Eml eml = parse(
-        xml("creator", "Alice", "Andersen", "alice@example.org", null),
-        xml("metadataProvider", "Alice", "Andersen", "alice@example.org", null),
-        xml("contact", "Alice", "Andersen", "alice@example.org", null),
-        xml("associatedParty", "Alice", "Andersen", "alice@example.org", "programmer"));
+    Eml eml =
+        parse(
+            xml("creator", "Alice", "Andersen", "alice@example.org", null),
+            xml("metadataProvider", "Alice", "Andersen", "alice@example.org", null),
+            xml("contact", "Alice", "Andersen", "alice@example.org", null),
+            xml("associatedParty", "Alice", "Andersen", "alice@example.org", "programmer"));
 
     assertEquals(1, eml.getParties().size());
     Party party = eml.getParties().get(0);
@@ -122,9 +136,10 @@ public class PartyTest {
 
   @Test
   public void testParseDifferentContactInformationStaysSeparate() throws Exception {
-    Eml eml = parse(
-        xml("creator", "Alice", "Andersen", "alice@example.org", null),
-        xml("contact", "Alice", "Andersen", "alice@old.example.org", null));
+    Eml eml =
+        parse(
+            xml("creator", "Alice", "Andersen", "alice@example.org", null),
+            xml("contact", "Alice", "Andersen", "alice@old.example.org", null));
 
     assertEquals(2, eml.getParties().size());
     assertTrue(eml.getParties().get(0).isCreator());
@@ -134,10 +149,11 @@ public class PartyTest {
 
   @Test
   public void testParseKeepsPrimaryContactWhoIsAlsoCreator() throws Exception {
-    Eml eml = parse(
-        xml("creator", "Alice", "Andersen", "alice@example.org", null),
-        xml("contact", "Bob", "Berg", "bob@example.org", null),
-        xml("contact", "Alice", "Andersen", "alice@example.org", null));
+    Eml eml =
+        parse(
+            xml("creator", "Alice", "Andersen", "alice@example.org", null),
+            xml("contact", "Bob", "Berg", "bob@example.org", null),
+            xml("contact", "Alice", "Andersen", "alice@example.org", null));
 
     assertEquals(List.of("Berg", "Andersen"), partyNames(eml.getParties()));
     assertEquals(List.of("Andersen"), lastNames(eml.getCreators()));
@@ -153,9 +169,10 @@ public class PartyTest {
 
   @Test
   public void testParseAssociatedPartyRoleNamedLikeDatasetRoleIsNotADatasetRole() throws Exception {
-    Eml eml = parse(
-        xml("associatedParty", "Alice", "Andersen", "alice@example.org", "metadataProvider"),
-        xml("associatedParty", "Alice", "Andersen", "alice@example.org", "pointOfContact"));
+    Eml eml =
+        parse(
+            xml("associatedParty", "Alice", "Andersen", "alice@example.org", "metadataProvider"),
+            xml("associatedParty", "Alice", "Andersen", "alice@example.org", "pointOfContact"));
 
     Party party = eml.getParties().get(0);
     assertFalse(party.isMetadataProvider());
@@ -168,18 +185,20 @@ public class PartyTest {
   @Test
   public void testParsedSamplesWriteStableXmlWithAllAgents() throws Exception {
     Pattern agentElement = Pattern.compile("<(creator|metadataProvider|contact|associatedParty)>");
-    for (String sample : List.of("eml/ipt/sample.xml", "eml/ipt/sample2.xml", "eml/ipt/sample3.xml")) {
-      String source = new String(
-          FileUtils.classpathStream(sample).readAllBytes(), StandardCharsets.UTF_8);
+    for (String sample :
+        List.of("eml/ipt/sample.xml", "eml/ipt/sample2.xml", "eml/ipt/sample3.xml")) {
+      String source =
+          new String(FileUtils.classpathStream(sample).readAllBytes(), StandardCharsets.UTF_8);
       Eml eml = EmlFactory.build(FileUtils.classpathStream(sample));
       String written = IptEmlWriter.writeEmlAsString(eml);
 
       // every agent element of the source is written, in the same order
-      assertEquals(agentElements(agentElement, source), agentElements(agentElement, written), sample);
+      assertEquals(
+          agentElements(agentElement, source), agentElements(agentElement, written), sample);
 
       // reading back what was written gives the same parties and the same XML
-      Eml reread = EmlFactory.build(
-          new ByteArrayInputStream(written.getBytes(StandardCharsets.UTF_8)));
+      Eml reread =
+          EmlFactory.build(new ByteArrayInputStream(written.getBytes(StandardCharsets.UTF_8)));
       assertEquals(eml.getParties(), reread.getParties(), sample);
       assertEquals(written, IptEmlWriter.writeEmlAsString(reread), sample);
     }
@@ -200,11 +219,9 @@ public class PartyTest {
 
   @Test
   public void testMergeKeepsCreatorOrderAndPrimaryContact() {
-    List<Party> parties = Party.merge(
-        List.of(alice(), bob(), carol()),
-        List.of(dan(), carol()),
-        List.of(bob()),
-        List.of());
+    List<Party> parties =
+        Party.merge(
+            List.of(alice(), bob(), carol()), List.of(dan(), carol()), List.of(bob()), List.of());
 
     Eml eml = new Eml();
     eml.setParties(parties);
@@ -216,11 +233,8 @@ public class PartyTest {
 
   @Test
   public void testMergeConflictingOrdersFirstAppearanceWins() {
-    List<Party> parties = Party.merge(
-        List.of(alice(), bob()),
-        List.of(bob(), alice()),
-        List.of(),
-        List.of());
+    List<Party> parties =
+        Party.merge(List.of(alice(), bob()), List.of(bob(), alice()), List.of(), List.of());
 
     Eml eml = new Eml();
     eml.setParties(parties);
@@ -232,15 +246,16 @@ public class PartyTest {
 
   @Test
   public void testMergeGroupsAssociatedPartyRoles() {
-    List<Party> parties = Party.merge(
-        List.of(),
-        List.of(),
-        List.of(),
-        List.of(
-            withRole(alice(), "author"),
-            withRole(bob(), "editor"),
-            withRole(alice(), "programmer"),
-            withRole(alice(), "author")));
+    List<Party> parties =
+        Party.merge(
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(
+                withRole(alice(), "author"),
+                withRole(bob(), "editor"),
+                withRole(alice(), "programmer"),
+                withRole(alice(), "author")));
 
     assertEquals(2, parties.size());
     assertEquals(List.of("author", "programmer"), parties.get(0).getAssociatedPartyRoles());

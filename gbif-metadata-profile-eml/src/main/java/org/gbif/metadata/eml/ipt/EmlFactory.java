@@ -81,7 +81,8 @@ public class EmlFactory {
     Digester digester = new Digester();
     digester.setNamespaceAware(true);
 
-    // the agents of each dataset role are collected in the root object and merged into parties after parsing
+    // the agents of each dataset role are collected in the root object and merged into parties
+    // after parsing
     ParsedAgents parsedAgents = new ParsedAgents();
     digester.push(parsedAgents);
 

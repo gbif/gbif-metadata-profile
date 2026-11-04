@@ -34,8 +34,7 @@ import lombok.ToString;
 @ToString
 public class Agent implements Serializable {
 
-  @Serial
-  private static final long serialVersionUID = 7028536657833651816L;
+  @Serial private static final long serialVersionUID = 7028536657833651816L;
 
   @Getter private String salutation;
   private String firstName;
@@ -131,8 +130,10 @@ public class Agent implements Serializable {
     if (this == other) {
       return true;
     }
-    return Objects.equals(StringUtils.trimToNull(salutation), StringUtils.trimToNull(other.salutation))
-        && Objects.equals(StringUtils.trimToNull(firstName), StringUtils.trimToNull(other.firstName))
+    return Objects.equals(
+            StringUtils.trimToNull(salutation), StringUtils.trimToNull(other.salutation))
+        && Objects.equals(
+            StringUtils.trimToNull(firstName), StringUtils.trimToNull(other.firstName))
         && Objects.equals(StringUtils.trimToNull(lastName), StringUtils.trimToNull(other.lastName))
         && Objects.equals(
             StringUtils.trimToNull(organisation), StringUtils.trimToNull(other.organisation))
