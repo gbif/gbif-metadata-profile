@@ -15,6 +15,7 @@ package org.gbif.metadata.eml.ipt;
 
 import org.gbif.metadata.eml.ipt.model.Address;
 import org.gbif.metadata.eml.ipt.model.Agent;
+import org.gbif.metadata.eml.ipt.model.BBox;
 import org.gbif.metadata.eml.ipt.model.Collection;
 import org.gbif.metadata.eml.ipt.model.Eml;
 import org.gbif.metadata.eml.ipt.model.KeywordSet;
@@ -173,6 +174,31 @@ public class EmlWriterTest {
       e.printStackTrace();
       fail();
     }
+  }
+
+  /**
+   * A box crossing the 180th meridian (west edge east of the east edge) keeps its west and east coordinates when the
+   * EML is written and read again.
+   */
+  @Test
+  public void testRoundtripBoxCrossingAntimeridian() throws Exception {
+    Eml eml = EmlFactory.build(FileUtils.classpathStream("eml/ipt/sample.xml"));
+    BBox box = eml.getGeospatialCoverages().get(0).getBoundingCoordinates();
+    box.getMin().setLongitude(163.486);
+    box.getMax().setLongitude(-165.591);
+    box.getMin().setLatitude(4.565);
+    box.getMax().setLatitude(30.449);
+
+    File temp = File.createTempFile("eml", ".xml");
+    temp.deleteOnExit();
+    IptEmlWriter.writeEmlFile(temp, eml);
+    Eml eml2 = EmlFactory.build(Files.newInputStream(temp.toPath()));
+
+    BBox box2 = eml2.getGeospatialCoverages().get(0).getBoundingCoordinates();
+    assertEquals(163.486, box2.getMin().getLongitude());
+    assertEquals(-165.591, box2.getMax().getLongitude());
+    assertEquals(4.565, box2.getMin().getLatitude());
+    assertEquals(30.449, box2.getMax().getLatitude());
   }
 
   @Test

@@ -253,11 +253,12 @@ public class BBox implements Serializable {
   }
 
   /**
-   * Sets the westing coordinate
+   * Sets the east bounding coordinate as given: a box crossing the 180th meridian has its west edge east of its east
+   * edge, so the longitudes are not reordered.
    */
   public void setMaxX(String s) {
     try {
-      setOrderedX(max.getLongitude(), Double.parseDouble(s));
+      max.setLongitude(Double.parseDouble(s));
     } catch (NumberFormatException ignored) {
       // not a Double, so not much can be done really
     }
@@ -287,11 +288,12 @@ public class BBox implements Serializable {
   }
 
   /**
-   * Sets the easting coordinate
+   * Sets the west bounding coordinate as given: a box crossing the 180th meridian has its west edge east of its east
+   * edge, so the longitudes are not reordered.
    */
   public void setMinX(String s) {
     try {
-      setOrderedX(min.getLongitude(), Double.parseDouble(s));
+      min.setLongitude(Double.parseDouble(s));
     } catch (NumberFormatException ignored) {
       // not a Double, so not much can be done really
     }
