@@ -802,9 +802,10 @@ public class EMLRuleSet extends RuleSetBase {
       Set<String> languages = new HashSet<>();
       for (Element section : sections) {
         Language language = parseLanguage(xmlLang(section));
-        String key = language == null || language == Language.UNKNOWN
-            ? xmlLang(section).trim().toLowerCase()
-            : language.name();
+        String key =
+            language == null || language == Language.UNKNOWN
+                ? xmlLang(section).trim().toLowerCase()
+                : language.name();
         if (!languages.add(key)) {
           return;
         }

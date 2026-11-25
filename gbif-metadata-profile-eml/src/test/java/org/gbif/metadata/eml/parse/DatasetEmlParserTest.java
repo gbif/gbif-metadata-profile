@@ -1616,11 +1616,15 @@ public class DatasetEmlParserTest {
       throws IOException {
     String xml =
         "<eml:eml xmlns:eml=\"https://eml.ecoinformatics.org/eml-2.2.0\" packageId=\"x\""
-            + " system=\"http://gbif.org\" scope=\"system\" xml:lang=\"" + metadataLanguage + "\">"
+            + " system=\"http://gbif.org\" scope=\"system\" xml:lang=\""
+            + metadataLanguage
+            + "\">"
             + "<dataset>"
             + "<title xml:lang=\"en\">African Crane Sightings</title>"
             + "<title xml:lang=\"es\">Avistamientos de grullas africanas</title>"
-            + "<abstract>" + abstractContent + "</abstract>"
+            + "<abstract>"
+            + abstractContent
+            + "</abstract>"
             + "</dataset></eml:eml>";
     return DatasetEmlParser.parse(
         new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
@@ -1633,8 +1637,12 @@ public class DatasetEmlParserTest {
   private static Dataset parseTitles(String metadataLanguage, String titles) throws IOException {
     String xml =
         "<eml:eml xmlns:eml=\"https://eml.ecoinformatics.org/eml-2.2.0\" packageId=\"x\""
-            + " system=\"http://gbif.org\" scope=\"system\" xml:lang=\"" + metadataLanguage + "\">"
-            + "<dataset>" + titles + "<abstract><para>One.</para></abstract></dataset></eml:eml>";
+            + " system=\"http://gbif.org\" scope=\"system\" xml:lang=\""
+            + metadataLanguage
+            + "\">"
+            + "<dataset>"
+            + titles
+            + "<abstract><para>One.</para></abstract></dataset></eml:eml>";
     return DatasetEmlParser.parse(
         new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
   }
@@ -1678,10 +1686,8 @@ public class DatasetEmlParserTest {
     assertEquals(
         "<p>English one.</p><p>English two.</p>",
         parseTranslated("eng", TRANSLATED_ABSTRACT).getDescription());
-    assertEquals(
-        "<p>Español.</p>", parseTranslated("spa", TRANSLATED_ABSTRACT).getDescription());
-    assertEquals(
-        "<p>Español.</p>", parseTranslated("es", TRANSLATED_ABSTRACT).getDescription());
+    assertEquals("<p>Español.</p>", parseTranslated("spa", TRANSLATED_ABSTRACT).getDescription());
+    assertEquals("<p>Español.</p>", parseTranslated("es", TRANSLATED_ABSTRACT).getDescription());
   }
 
   @Test
