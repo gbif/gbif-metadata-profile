@@ -40,6 +40,8 @@ import org.gbif.api.vocabulary.Language;
 import org.gbif.api.vocabulary.MaintenanceUpdateFrequency;
 import org.gbif.api.vocabulary.PreservationMethodType;
 import org.gbif.api.vocabulary.Rank;
+import org.gbif.common.parsers.LanguageParser;
+import org.gbif.common.parsers.core.ParseResult;
 import org.gbif.metadata.common.parse.ParagraphContainer;
 import org.gbif.metadata.common.parse.converter.GreedyUriConverter;
 import org.gbif.metadata.common.parse.converter.LanguageTypeConverter;
@@ -52,8 +54,13 @@ import org.gbif.metadata.eml.parse.converter.PreservationMethodTypeConverter;
 
 import java.io.StringWriter;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -70,6 +77,7 @@ import org.apache.commons.beanutils.converters.IntegerConverter;
 import org.apache.commons.digester3.AbstractObjectCreationFactory;
 import org.apache.commons.digester3.Digester;
 import org.apache.commons.digester3.NodeCreateRule;
+import org.apache.commons.digester3.Rule;
 import org.apache.commons.digester3.RuleSetBase;
 import org.apache.commons.digester3.SetNextRule;
 import org.apache.commons.digester3.SetRootRule;
@@ -162,6 +170,7 @@ public class EMLRuleSet extends RuleSetBase {
     setupTypeConverters();
 
     // language as xml:lang attribute
+    digester.addRule("eml", new MetadataLanguageRule());
     digester.addCallMethod("eml", "setLanguage", 1, new Class[] {Language.class});
     digester.addCallParam("eml", 0, "xml:lang");
 
@@ -178,8 +187,10 @@ public class EMLRuleSet extends RuleSetBase {
     // short name
     digester.addBeanPropertySetter("eml/dataset/shortName", "shortName");
 
-    // title (no language support in Dataset)
-    digester.addBeanPropertySetter("eml/dataset/title", "title");
+    // title: Dataset has one, chosen by language (see TitleRule)
+    TitleRule titleRule = new TitleRule();
+    digester.addRule("eml/dataset", titleRule.datasetRule());
+    digester.addRule("eml/dataset/title", titleRule);
 
     // SamplingDescription
     addSamplingDescriptionRules(digester, "eml/dataset/methods", "setSamplingDescription");
@@ -589,6 +600,115 @@ public class EMLRuleSet extends RuleSetBase {
     }
   }
 
+  private static Language parseLanguage(String code) {
+    if (StringUtils.isBlank(code)) {
+      return null;
+    }
+    ParseResult<Language> result = LanguageParser.getInstance().parse(code.trim());
+    return result.isSuccessful() ? result.getPayload() : null;
+  }
+
+  private static String xmlLang(Attributes attributes) {
+    String lang = attributes.getValue(XMLConstants.XML_NS_URI, "lang");
+    return lang != null ? lang : attributes.getValue("xml:lang");
+  }
+
+  /**
+   * Translated titles are repeated &lt;title xml:lang="..."&gt; elements. Dataset has one title, so
+   * the one kept is the title in the metadata language, else one without xml:lang, else the English
+   * one, else the first one. Empty titles are skipped.
+   */
+  static class TitleRule extends Rule {
+
+    private final List<String[]> titles = new ArrayList<>();
+    private String lang;
+
+    /** Collects the titles of one dataset and sets the chosen one when the dataset element ends. */
+    Rule datasetRule() {
+      return new Rule() {
+        @Override
+        public void begin(String namespace, String name, Attributes attributes) {
+          titles.clear();
+        }
+
+        @Override
+        public void end(String namespace, String name) throws Exception {
+          String title = choose();
+          if (title != null) {
+            MethodUtils.invokeExactMethod(getDigester().peek(), "setTitle", title);
+          }
+          titles.clear();
+        }
+      };
+    }
+
+    @Override
+    public void begin(String namespace, String name, Attributes attributes) {
+      lang = xmlLang(attributes);
+    }
+
+    @Override
+    public void body(String namespace, String name, String text) {
+      if (StringUtils.isNotBlank(text)) {
+        titles.add(new String[] {StringUtils.trimToEmpty(lang), text.trim()});
+      }
+    }
+
+    private String choose() {
+      if (titles.isEmpty()) {
+        return null;
+      }
+      Language metadataLanguage =
+          getDigester().isEmpty(MetadataLanguageRule.STACK)
+              ? null
+              : parseLanguage(getDigester().<String>peek(MetadataLanguageRule.STACK));
+      String title = find(metadataLanguage);
+      if (title == null) {
+        for (String[] t : titles) {
+          if (t[0].isEmpty()) {
+            title = t[1];
+            break;
+          }
+        }
+      }
+      if (title == null) {
+        title = find(Language.ENGLISH);
+      }
+      return title != null ? title : titles.get(0)[1];
+    }
+
+    private String find(Language language) {
+      if (language == null || language == Language.UNKNOWN) {
+        return null;
+      }
+      for (String[] t : titles) {
+        if (language == parseLanguage(t[0])) {
+          return t[1];
+        }
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Keeps the metadata language (eml/@xml:lang) on a named stack while the document is parsed, so
+   * rules for nested elements can read it before setLanguage is called at the end of the document.
+   */
+  static class MetadataLanguageRule extends Rule {
+
+    static final String STACK = "metadataLanguage";
+
+    @Override
+    public void begin(String namespace, String name, Attributes attributes) {
+      getDigester().push(STACK, StringUtils.defaultString(xmlLang(attributes)));
+    }
+
+    @Override
+    public void end(String namespace, String name) {
+      getDigester().pop(STACK);
+    }
+  }
+
   // Converter to literal XML (DocBook) ant then to HTML
   public static class DocBookRule extends NodeCreateRule {
 
@@ -607,6 +727,7 @@ public class EMLRuleSet extends RuleSetBase {
     @Override
     public void end(String namespace, String name) throws Exception {
       Element nodeToSerialize = super.getDigester().pop();
+      keepMetadataLanguageSection(nodeToSerialize);
       String serializedNode = serializeNode(nodeToSerialize);
       invokeMethodOnTopOfStack(method, serializedNode);
     }
@@ -653,6 +774,77 @@ public class EMLRuleSet extends RuleSetBase {
       }
 
       return htmlOutput;
+    }
+
+    /**
+     * Translated text is written as one top-level section per language
+     * (&lt;section xml:lang="..."&gt;), at least two of them. Dataset has no room for translations, so only the section in
+     * the metadata language is kept (else English, else the first one) and its content takes the
+     * place of the sections.
+     */
+    private void keepMetadataLanguageSection(Element element) {
+      List<Element> sections = new ArrayList<>();
+      for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
+        if (child.getNodeType() == Node.ELEMENT_NODE) {
+          Element childElement = (Element) child;
+          if (!"section".equals(childElement.getLocalName())
+              || StringUtils.isBlank(xmlLang(childElement))) {
+            return;
+          }
+          sections.add(childElement);
+        }
+      }
+      // translations are two or more sections, each in a different language; anything else
+      // (e.g. an abstract split into several sections in one language) is left as it is
+      if (sections.size() < 2) {
+        return;
+      }
+      Set<String> languages = new HashSet<>();
+      for (Element section : sections) {
+        Language language = parseLanguage(xmlLang(section));
+        String key = language == null || language == Language.UNKNOWN
+            ? xmlLang(section).trim().toLowerCase()
+            : language.name();
+        if (!languages.add(key)) {
+          return;
+        }
+      }
+
+      Language metadataLanguage =
+          getDigester().isEmpty(MetadataLanguageRule.STACK)
+              ? null
+              : parseLanguage(getDigester().<String>peek(MetadataLanguageRule.STACK));
+      Element kept = findSection(sections, metadataLanguage);
+      if (kept == null) {
+        kept = findSection(sections, Language.ENGLISH);
+      }
+      if (kept == null) {
+        kept = sections.get(0);
+      }
+
+      while (element.getFirstChild() != null) {
+        element.removeChild(element.getFirstChild());
+      }
+      while (kept.getFirstChild() != null) {
+        element.appendChild(kept.getFirstChild());
+      }
+    }
+
+    private Element findSection(List<Element> sections, Language language) {
+      if (language == null || language == Language.UNKNOWN) {
+        return null;
+      }
+      for (Element section : sections) {
+        if (language == parseLanguage(xmlLang(section))) {
+          return section;
+        }
+      }
+      return null;
+    }
+
+    private static String xmlLang(Element element) {
+      String lang = element.getAttributeNS(XMLConstants.XML_NS_URI, "lang");
+      return StringUtils.isNotBlank(lang) ? lang : element.getAttribute("xml:lang");
     }
 
     private String preservePreformattedWhitespace(String xmlString) {

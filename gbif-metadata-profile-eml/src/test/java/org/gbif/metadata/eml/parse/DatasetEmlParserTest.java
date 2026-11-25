@@ -1611,4 +1611,117 @@ public class DatasetEmlParserTest {
       }
     }
   }
+
+  private static Dataset parseTranslated(String metadataLanguage, String abstractContent)
+      throws IOException {
+    String xml =
+        "<eml:eml xmlns:eml=\"https://eml.ecoinformatics.org/eml-2.2.0\" packageId=\"x\""
+            + " system=\"http://gbif.org\" scope=\"system\" xml:lang=\"" + metadataLanguage + "\">"
+            + "<dataset>"
+            + "<title xml:lang=\"en\">African Crane Sightings</title>"
+            + "<title xml:lang=\"es\">Avistamientos de grullas africanas</title>"
+            + "<abstract>" + abstractContent + "</abstract>"
+            + "</dataset></eml:eml>";
+    return DatasetEmlParser.parse(
+        new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+  }
+
+  private static final String TRANSLATED_ABSTRACT =
+      "<section xml:lang=\"en\"><para>English one.</para><para>English two.</para></section>"
+          + "<section xml:lang=\"es\"><para>Español.</para></section>";
+
+  private static Dataset parseTitles(String metadataLanguage, String titles) throws IOException {
+    String xml =
+        "<eml:eml xmlns:eml=\"https://eml.ecoinformatics.org/eml-2.2.0\" packageId=\"x\""
+            + " system=\"http://gbif.org\" scope=\"system\" xml:lang=\"" + metadataLanguage + "\">"
+            + "<dataset>" + titles + "<abstract><para>One.</para></abstract></dataset></eml:eml>";
+    return DatasetEmlParser.parse(
+        new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+  }
+
+  @Test
+  public void testTranslatedTitleKeepsMetadataLanguage() throws IOException {
+    Dataset dataset = parseTranslated("eng", TRANSLATED_ABSTRACT);
+    assertEquals("African Crane Sightings", dataset.getTitle());
+    assertEquals(Language.ENGLISH, dataset.getLanguage());
+
+    // metadata language title is not the first one
+    assertEquals(
+        "Avistamientos de grullas africanas",
+        parseTranslated("spa", TRANSLATED_ABSTRACT).getTitle());
+    assertEquals(
+        "Avistamientos de grullas africanas",
+        parseTranslated("es", TRANSLATED_ABSTRACT).getTitle());
+  }
+
+  @Test
+  public void testTranslatedTitleFallsBack() throws IOException {
+    String en = "<title xml:lang=\"en\">English</title>";
+    String es = "<title xml:lang=\"es\">Espa\u00f1ol</title>";
+    String de = "<title xml:lang=\"de\">Deutsch</title>";
+    String untagged = "<title>Untagged</title>";
+    // no title in the metadata language: one without xml:lang
+    assertEquals("Untagged", parseTitles("fra", es + untagged + en).getTitle());
+    // then English
+    assertEquals("English", parseTitles("fra", es + en).getTitle());
+    // then the first one
+    assertEquals("Deutsch", parseTitles("fra", de + es).getTitle());
+    // empty titles are skipped
+    assertEquals(
+        "Espa\u00f1ol", parseTitles("spa", "<title xml:lang=\"es\"> </title>" + es).getTitle());
+    // a single untagged title, as in older EML
+    assertEquals("Untagged", parseTitles("eng", untagged).getTitle());
+  }
+
+  @Test
+  public void testTranslatedDescriptionKeepsMetadataLanguage() throws IOException {
+    assertEquals(
+        "<p>English one.</p><p>English two.</p>",
+        parseTranslated("eng", TRANSLATED_ABSTRACT).getDescription());
+    assertEquals(
+        "<p>Español.</p>", parseTranslated("spa", TRANSLATED_ABSTRACT).getDescription());
+    assertEquals(
+        "<p>Español.</p>", parseTranslated("es", TRANSLATED_ABSTRACT).getDescription());
+  }
+
+  @Test
+  public void testTranslatedDescriptionFallsBack() throws IOException {
+    // metadata language not among the sections: English
+    assertEquals(
+        "<p>English one.</p><p>English two.</p>",
+        parseTranslated("fra", TRANSLATED_ABSTRACT).getDescription());
+    // no English section either: the first one
+    assertEquals(
+        "<p>Deutsch.</p>",
+        parseTranslated(
+                "fra",
+                "<section xml:lang=\"de\"><para>Deutsch.</para></section>"
+                    + "<section xml:lang=\"es\"><para>Español.</para></section>")
+            .getDescription());
+  }
+
+  @Test
+  public void testDescriptionWithoutTranslations() throws IOException {
+    assertEquals(
+        "<p>One.</p><p>Two.</p>",
+        parseTranslated("eng", "<para>One.</para><para>Two.</para>").getDescription());
+    // sections without xml:lang are not translations
+    assertEquals(
+        "<div><h1>Heading</h1><p>One.</p></div>",
+        parseTranslated("eng", "<section><title>Heading</title><para>One.</para></section>")
+            .getDescription());
+    // a single section with xml:lang is not a translation: converted as before
+    assertTrue(
+        parseTranslated("eng", "<section xml:lang=\"en\"><para>One.</para></section>")
+            .getDescription()
+            .startsWith("<section xml:lang=\"en\">"));
+    // several sections in one language are not translations: nothing is dropped
+    String split =
+        parseTranslated(
+                "eng",
+                "<section xml:lang=\"en\"><title>Background</title><para>One.</para></section>"
+                    + "<section xml:lang=\"eng\"><title>Methods</title><para>Two.</para></section>")
+            .getDescription();
+    assertTrue(split.contains("Background") && split.contains("Methods"), split);
+  }
 }
